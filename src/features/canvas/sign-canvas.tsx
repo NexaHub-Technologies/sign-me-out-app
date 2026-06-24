@@ -60,6 +60,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 	const stageRef = useRef<Konva.Stage>(null);
 	const draftRef = useRef<Draft | null>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const textWasOpenRef = useRef(false);
 	const trRef = useRef<Konva.Transformer>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const recorderRef = useRef<MediaRecorder | null>(null);
@@ -97,13 +98,6 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 		ro.observe(el);
 		return () => ro.disconnect();
 	}, []);
-
-	// Focus the text box AFTER the pointer event resolves — autoFocus fires too
-	// early and the canvas's default mousedown focus steals it back, instantly
-	// blurring (and discarding) the empty textarea.
-	useEffect(() => {
-		if (textDraft) requestAnimationFrame(() => textareaRef.current?.focus());
-	}, [textDraft]);
 
 	// Selection is only meaningful with the Move tool.
 	useEffect(() => {
@@ -251,6 +245,10 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 			screenX: screen.x,
 			screenY: screen.y,
 		});
+		// Focus synchronously, still inside the tap gesture, so mobile keyboards
+		// open and the box doesn't blur-and-vanish on finger-up. The textarea is
+		// always mounted (just parked off-screen) so the ref is ready here.
+		textareaRef.current?.focus();
 	}
 	function commitText() {
 		const d = textDraft;
@@ -392,11 +390,23 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 
 	// ---- pointer dispatch --------------------------------------------------
 	function onPointerDown(e: KonvaEventObject<PointerEvent>) {
+		// Remember whether a text box was open as the tap began: tapping the canvas
+		// blurs (commits) it, so by pointer-up textDraft is already null — this lets
+		// us tell "commit the open box" from "place a new one".
+		textWasOpenRef.current = textDraft !== null;
 		if (locked) return;
 		if (tool === "pen") startStroke(e);
-		else if (tool === "text") startText();
 		else if (tool === "move" && e.target === e.target.getStage()) {
 			setSelectedId(null); // click empty space to deselect
+		}
+	}
+
+	function onPointerUp() {
+		endStroke();
+		// Create the text box on tap-up so focus() lands inside the gesture (mobile
+		// keyboard). Skip if this tap was just dismissing an already-open box.
+		if (tool === "text" && !textWasOpenRef.current && textDraft === null) {
+			startText();
 		}
 	}
 
@@ -448,7 +458,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 					onWheel={handleWheel}
 					onPointerDown={onPointerDown}
 					onPointerMove={extendStroke}
-					onPointerUp={endStroke}
+					onPointerUp={onPointerUp}
 					onDragEnd={(e) => {
 						if (e.target === e.target.getStage()) {
 							setPos({ x: e.target.x(), y: e.target.y() });
@@ -501,29 +511,36 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 				</Stage>
 			)}
 
-			{/* text entry overlay */}
-			{textDraft && (
-				<textarea
-					ref={textareaRef}
-					value={textValue}
-					onChange={(e) => setTextValue(e.target.value)}
-					onMouseDown={(e) => e.stopPropagation()}
-					onBlur={commitText}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && !e.shiftKey) {
-							e.preventDefault();
-							commitText();
-						}
-						if (e.key === "Escape") {
-							setTextDraft(null);
-							setTextValue("");
-						}
-					}}
-					placeholder="type, then Enter"
-					className="absolute z-30 min-w-[180px] touch-auto select-text resize-none rounded-md border border-marker-green bg-white/95 px-2 py-1 font-hand text-2xl text-ink shadow-lg outline-none"
-					style={{ left: textDraft.screenX, top: textDraft.screenY }}
-				/>
-			)}
+			{/* Text entry overlay — always mounted (parked off-screen when idle) so
+			    we can focus it synchronously inside the tap gesture on mobile. */}
+			<textarea
+				ref={textareaRef}
+				value={textValue}
+				onChange={(e) => setTextValue(e.target.value)}
+				onMouseDown={(e) => e.stopPropagation()}
+				onTouchStart={(e) => e.stopPropagation()}
+				onPointerDown={(e) => e.stopPropagation()}
+				onBlur={commitText}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" && !e.shiftKey) {
+						e.preventDefault();
+						commitText();
+					}
+					if (e.key === "Escape") {
+						setTextDraft(null);
+						setTextValue("");
+					}
+				}}
+				placeholder="type, then Enter"
+				className={cn(
+					"absolute z-30 min-w-[180px] touch-auto select-text resize-none rounded-md border border-marker-green bg-white/95 px-2 py-1 font-hand text-2xl text-ink shadow-lg outline-none",
+					!textDraft && "pointer-events-none",
+				)}
+				style={{
+					left: textDraft ? textDraft.screenX : -9999,
+					top: textDraft ? textDraft.screenY : -9999,
+				}}
+			/>
 
 			{/* signing-as chip */}
 			<div className="absolute left-4 top-4 z-20">

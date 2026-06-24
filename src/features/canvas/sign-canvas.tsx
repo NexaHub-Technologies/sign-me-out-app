@@ -61,6 +61,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 	const draftRef = useRef<Draft | null>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const textWasOpenRef = useRef(false);
+	const textOpenedAtRef = useRef(0);
 	const trRef = useRef<Konva.Transformer>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const recorderRef = useRef<MediaRecorder | null>(null);
@@ -245,10 +246,29 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 			screenX: screen.x,
 			screenY: screen.y,
 		});
-		// Focus synchronously, still inside the tap gesture, so mobile keyboards
-		// open and the box doesn't blur-and-vanish on finger-up. The textarea is
-		// always mounted (just parked off-screen) so the ref is ready here.
-		textareaRef.current?.focus();
+		textOpenedAtRef.current = Date.now();
+		// Move it to the tap point and focus synchronously, still inside the tap
+		// gesture, so the mobile keyboard opens. The textarea is always mounted
+		// (parked off-screen) so the ref is ready; positioning before focus avoids
+		// focusing an off-screen field. React re-applies the same left/top on the
+		// next render, so there's no conflict.
+		const ta = textareaRef.current;
+		if (ta) {
+			ta.style.left = `${screen.x}px`;
+			ta.style.top = `${screen.y}px`;
+			ta.focus();
+		}
+	}
+	// Mobile fires a spurious blur right after the box opens (the trailing
+	// synthetic click / focus race). Swallow it — keep the empty box open and
+	// re-assert focus — so it doesn't commit-empty and vanish. After a short
+	// window, blur means the user really left, so commit/dismiss normally.
+	function onTextBlur() {
+		if (Date.now() - textOpenedAtRef.current < 500 && !textValue.trim()) {
+			textareaRef.current?.focus();
+			return;
+		}
+		commitText();
 	}
 	function commitText() {
 		const d = textDraft;
@@ -520,7 +540,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 				onMouseDown={(e) => e.stopPropagation()}
 				onTouchStart={(e) => e.stopPropagation()}
 				onPointerDown={(e) => e.stopPropagation()}
-				onBlur={commitText}
+				onBlur={onTextBlur}
 				onKeyDown={(e) => {
 					if (e.key === "Enter" && !e.shiftKey) {
 						e.preventDefault();

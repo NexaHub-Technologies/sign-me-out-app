@@ -1,5 +1,5 @@
 import type { KonvaEventObject } from "konva/lib/Node";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	Circle,
 	Group,
@@ -170,14 +170,31 @@ function VoiceMark({ mark, common }: { mark: Mark; common: CommonProps }) {
 	const seconds = Math.round((mark.durationMs ?? 0) / 1000);
 	const label = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 	const color = mark.color ?? "#15784a";
+	const audioRef = useRef<HTMLAudioElement | null>(null);
+	const [playing, setPlaying] = useState(false);
 
-	function play() {
+	// Stop playback if the chip unmounts.
+	useEffect(() => {
+		return () => audioRef.current?.pause();
+	}, []);
+
+	function toggle(e: KonvaEventObject<Event>) {
+		e.cancelBubble = true; // play/pause only — don't also select the chip
 		if (!mark.mediaUrl) return;
-		new window.Audio(mark.mediaUrl).play().catch(() => {});
+		let audio = audioRef.current;
+		if (!audio) {
+			audio = new window.Audio(mark.mediaUrl);
+			audio.addEventListener("play", () => setPlaying(true));
+			audio.addEventListener("pause", () => setPlaying(false));
+			audio.addEventListener("ended", () => setPlaying(false));
+			audioRef.current = audio;
+		}
+		if (audio.paused) audio.play().catch(() => {});
+		else audio.pause();
 	}
 
 	return (
-		<Group {...common} onClick={play} onTap={play}>
+		<Group {...common}>
 			<Rect
 				width={150}
 				height={44}
@@ -189,10 +206,32 @@ function VoiceMark({ mark, common }: { mark: Mark; common: CommonProps }) {
 				shadowBlur={10}
 				shadowOffsetY={3}
 			/>
-			<Circle x={22} y={22} radius={13} fill={color} />
-			{/* simple mic glyph */}
-			<Rect x={18} y={14} width={8} height={12} cornerRadius={4} fill="#fff" />
-			<Rect x={21} y={28} width={2} height={4} fill="#fff" />
+			{/* play / pause button */}
+			<Group onClick={toggle} onTap={toggle}>
+				<Circle x={22} y={22} radius={13} fill={color} />
+				{playing ? (
+					<>
+						<Rect
+							x={18}
+							y={15}
+							width={3}
+							height={14}
+							cornerRadius={1}
+							fill="#fff"
+						/>
+						<Rect
+							x={25}
+							y={15}
+							width={3}
+							height={14}
+							cornerRadius={1}
+							fill="#fff"
+						/>
+					</>
+				) : (
+					<Line points={[19, 15, 19, 29, 30, 22]} closed fill="#fff" />
+				)}
+			</Group>
 			{/* fake waveform */}
 			{WAVEFORM.map((bar) => (
 				<Rect
@@ -203,7 +242,7 @@ function VoiceMark({ mark, common }: { mark: Mark; common: CommonProps }) {
 					height={bar.h}
 					cornerRadius={1.5}
 					fill={color}
-					opacity={0.8}
+					opacity={playing ? 1 : 0.8}
 				/>
 			))}
 			<Text

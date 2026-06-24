@@ -54,6 +54,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const stageRef = useRef<Konva.Stage>(null);
 	const draftRef = useRef<Draft | null>(null);
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const recorderRef = useRef<MediaRecorder | null>(null);
 	const chunksRef = useRef<Blob[]>([]);
@@ -88,6 +89,13 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 		ro.observe(el);
 		return () => ro.disconnect();
 	}, []);
+
+	// Focus the text box AFTER the pointer event resolves — autoFocus fires too
+	// early and the canvas's default mousedown focus steals it back, instantly
+	// blurring (and discarding) the empty textarea.
+	useEffect(() => {
+		if (textDraft) requestAnimationFrame(() => textareaRef.current?.focus());
+	}, [textDraft]);
 
 	function worldPoint() {
 		return stageRef.current?.getRelativePointerPosition() ?? null;
@@ -431,9 +439,10 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 			{/* text entry overlay */}
 			{textDraft && (
 				<textarea
-					autoFocus
+					ref={textareaRef}
 					value={textValue}
 					onChange={(e) => setTextValue(e.target.value)}
+					onMouseDown={(e) => e.stopPropagation()}
 					onBlur={commitText}
 					onKeyDown={(e) => {
 						if (e.key === "Enter" && !e.shiftKey) {

@@ -685,12 +685,19 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 		// Keep the world point under the fingers fixed, and follow finger panning.
 		const dx = center.x - prev.center.x;
 		const dy = center.y - prev.center.y;
-		stage.scale({ x: nextScale, y: nextScale });
-		stage.position({
+		const nextPos = {
 			x: center.x - worldX * nextScale + dx,
 			y: center.y - worldY * nextScale + dy,
-		});
+		};
+		stage.scale({ x: nextScale, y: nextScale });
+		stage.position(nextPos);
 		stage.batchDraw();
+		// Mirror into React state every move too: with the Move tool the stage is
+		// draggable, so starting a pinch fires stopDrag -> onDragEnd -> a re-render
+		// mid-gesture. If state lagged, that render would reset scaleX and the zoom
+		// would snap back. Computing from the live stage keeps this in sync.
+		setScale(nextScale);
+		setPos(nextPos);
 		pinchRef.current = { dist, center };
 	}
 

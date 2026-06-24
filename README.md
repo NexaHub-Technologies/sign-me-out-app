@@ -1,225 +1,103 @@
-Welcome to your new TanStack Start app! 
+# Sign Me Out
 
-# Getting Started
+A web app for the Nigerian **sign-out day** tradition. Graduating students create an
+infinite **sign-out space** and share the link; friends drop by to leave signatures,
+doodles, well-wishes, photos, and voice notes on the canvas — a keepsake you can revisit,
+print, or wear.
 
-To run this application:
+## Stack
+
+- **[TanStack Start](https://tanstack.com/start)** (React 19 + SSR, Nitro, file-based routing, server functions)
+- **[Konva](https://konvajs.org/) / react-konva** + **[perfect-freehand](https://github.com/steveruizok/perfect-freehand)** for the infinite canvas and marker-style strokes
+- **[Supabase](https://supabase.com/)** — Postgres, Auth (Google OAuth + email/password), Realtime, Storage
+- **[Drizzle ORM](https://orm.drizzle.team/)** for schema + server-side writes
+- **[Tailwind CSS v4](https://tailwindcss.com/)** + **[shadcn/ui](https://ui.shadcn.com/)** (new-york / zinc)
+- **[Biome](https://biomejs.dev/)** for lint + format
+
+## Getting started
 
 ```bash
 npm install
-npm run dev
+cp .env.example .env.local   # then fill in the values below
+npm run dev                  # http://localhost:3000
 ```
 
-# Building For Production
+### Environment
 
-To build this application for production:
+Create `.env.local` with:
+
+| Variable | Used by | Where to find it |
+| --- | --- | --- |
+| `DATABASE_URL` | Drizzle (server writes & migrations) | Supabase → Project Settings → Database → Connection string (transaction pooler, port 6543) |
+| `VITE_SUPABASE_URL` | Browser client (auth, realtime, storage) | Supabase → Project Settings → API |
+| `VITE_SUPABASE_ANON_KEY` | Browser client | Supabase → Project Settings → API |
+
+> `.env.local` is git-ignored — never commit secrets.
+
+### Supabase setup (one-time, dashboard)
+
+1. Enable the **Google** auth provider and add redirect URLs:
+   `http://localhost:3000/auth/callback` (and your production URL).
+2. Apply the database schema: `npm run db:generate && npm run db:migrate`.
+3. Run `scripts/init-policies.sql` in the Supabase SQL editor — it sets up RLS read
+   policies, adds `marks` to the `supabase_realtime` publication, creates the
+   `space-media` storage bucket, and wires the `auth.users → profiles` trigger.
+
+## How it works
+
+- **Viewing is public** — anyone with the link sees the board. **Leaving a mark requires
+  sign-in** (Google or email/password).
+- **Writes** go through TanStack Start **server functions** (`src/server/*`) on the Drizzle
+  service connection; **reads** load via the route loader and stay live via **Supabase
+  Realtime**; **media** (photos / voice) uploads directly to Supabase Storage.
+- A single **`marks`** table backs every canvas element — `stroke` (signatures & doodles),
+  `text` (well-wishes), `photo`, and `voice` — each with a world transform (position,
+  rotation, scale) so elements can be moved, scaled, and rotated.
+- **Hosts** are cookie-only (a signed `host_token`); no account needed to own a board.
+
+## Routes
+
+| Path | Purpose |
+| --- | --- |
+| `/` | Landing page |
+| `/how-it-works`, `/wear` | Marketing |
+| `/login`, `/signup` | Auth (email/password + Google) |
+| `/auth/callback` | OAuth redirect handler |
+| `/create` | Create a new sign-out space |
+| `/dashboard` | Your spaces |
+| `/s/$spaceId` | The infinite sign-out canvas |
+
+## Project layout
+
+```
+src/
+  routes/            file-based routes (_marketing, _auth, _app, s.$spaceId)
+  features/
+    auth/            Google button, sign-in helpers, session hook
+    canvas/          Konva canvas, mark rendering, realtime, media upload
+  server/            server functions: auth, spaces, marks
+  db/                Drizzle schema + relations
+  lib/               Supabase browser client
+scripts/             SQL: init-policies.sql, reset-schema.sql
+```
+
+## Scripts
 
 ```bash
-npm run build
+npm run dev          # dev server on :3000
+npm run build        # production build
+npm run start        # serve the production build
+npm run check        # Biome lint + format check
+npm run db:generate  # generate a migration from schema.ts
+npm run db:migrate   # apply migrations
+npm run db:studio    # Drizzle Studio
 ```
-
-## Testing
-
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
-
-```bash
-npm run test
-```
-
-## Styling
-
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
-
-### Removing Tailwind CSS
-
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `npm install @tailwindcss/vite tailwindcss -D`
-
-## Linting & Formatting
-
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
-
-
-```bash
-npm run lint
-npm run format
-npm run check
-```
-
 
 ## Deploy to Railway
 
-This project ships with `nixpacks.toml` so Railway detects the build automatically:
+This repo ships with `nixpacks.toml` so Railway detects the build automatically:
 
-1. Push this repo to GitHub
-2. Visit https://railway.com/new and create a project from your repo
-3. In the **Variables** tab, add the entries from `.env.example` with their production values
-4. Railway runs `vite build` and serves from `dist/client`
-
-Need a database? Click **+ New** in your project to provision Postgres, MySQL, or Redis directly into the same environment — the connection string is auto-injected as `DATABASE_URL`.
-
-
-## Shadcn
-
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
-
-```bash
-pnpm dlx shadcn@latest add button
-```
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+1. Push the repo to GitHub.
+2. Create a project from the repo at https://railway.com/new.
+3. In **Variables**, add `DATABASE_URL`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_ANON_KEY`.
+4. Add your production URL to the Supabase Google redirect allowlist.

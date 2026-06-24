@@ -655,7 +655,7 @@ function Dock({
 	}
 	return (
 		<div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-			<div className="flex max-w-full items-center gap-0.5 overflow-x-auto rounded-2xl border border-line bg-surface-strong p-1.5 shadow-lg backdrop-blur-md [scrollbar-width:none] sm:gap-1 [&::-webkit-scrollbar]:hidden">
+			<div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl border border-line bg-surface-strong p-1.5 shadow-lg backdrop-blur-md">
 				{tool === "text" && (
 					<>
 						<span className="flex shrink-0 items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">
@@ -681,7 +681,7 @@ function Dock({
 								<Plus className="size-4" />
 							</button>
 						</span>
-						<span className="mx-1 h-7 w-px shrink-0 bg-line" />
+						<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
 					</>
 				)}
 				{TOOLS.map((t) => {
@@ -709,7 +709,7 @@ function Dock({
 					);
 				})}
 
-				<span className="mx-1 h-7 w-px shrink-0 bg-line" />
+				<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
 
 				{MARKER_COLORS.map((c) => (
 					<button

@@ -110,7 +110,10 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 		if (tool !== "move") setSelectedId(null);
 	}, [tool]);
 
-	// Attach the Transformer (bounding box) to the selected node.
+	// Attach the Transformer (bounding box) to the selected node. `marks` is an
+	// intentional dependency: re-run after the marks list changes so we re-find
+	// the (possibly re-created) selected node.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: marks is intentional, see above
 	useEffect(() => {
 		const tr = trRef.current;
 		const stage = stageRef.current;
@@ -431,7 +434,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 	const draft = draftRef.current;
 
 	return (
-		<div ref={wrapRef} className="absolute inset-0">
+		<div ref={wrapRef} className="absolute inset-0 touch-none select-none">
 			{size.w > 0 && (
 				<Stage
 					ref={stageRef}
@@ -517,7 +520,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 						}
 					}}
 					placeholder="type, then Enter"
-					className="absolute z-30 min-w-[180px] resize-none rounded-md border border-marker-green bg-white/95 px-2 py-1 font-hand text-2xl text-ink shadow-lg outline-none"
+					className="absolute z-30 min-w-[180px] touch-auto select-text resize-none rounded-md border border-marker-green bg-white/95 px-2 py-1 font-hand text-2xl text-ink shadow-lg outline-none"
 					style={{ left: textDraft.screenX, top: textDraft.screenY }}
 				/>
 			)}
@@ -651,11 +654,11 @@ function Dock({
 		onPick(id);
 	}
 	return (
-		<div className="absolute bottom-5 left-1/2 z-20 -translate-x-1/2">
-			<div className="flex items-center gap-1 rounded-2xl border border-line bg-surface-strong p-1.5 shadow-lg backdrop-blur-md">
+		<div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+			<div className="flex max-w-full items-center gap-0.5 overflow-x-auto rounded-2xl border border-line bg-surface-strong p-1.5 shadow-lg backdrop-blur-md [scrollbar-width:none] sm:gap-1 [&::-webkit-scrollbar]:hidden">
 				{tool === "text" && (
 					<>
-						<span className="flex items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">
+						<span className="flex shrink-0 items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">
 							<button
 								type="button"
 								onClick={() => setFontSize(fontSize - 6)}
@@ -678,7 +681,7 @@ function Dock({
 								<Plus className="size-4" />
 							</button>
 						</span>
-						<span className="mx-1 h-7 w-px bg-line" />
+						<span className="mx-1 h-7 w-px shrink-0 bg-line" />
 					</>
 				)}
 				{TOOLS.map((t) => {
@@ -693,7 +696,7 @@ function Dock({
 							aria-label={t.label}
 							aria-pressed={active}
 							className={cn(
-								"grid size-10 place-items-center rounded-xl transition-colors disabled:opacity-40",
+								"grid size-9 shrink-0 place-items-center rounded-xl transition-colors disabled:opacity-40 sm:size-10",
 								active
 									? t.id === "voice" && recording
 										? "bg-marker-pink text-white"
@@ -706,7 +709,7 @@ function Dock({
 					);
 				})}
 
-				<span className="mx-1 h-7 w-px bg-line" />
+				<span className="mx-1 h-7 w-px shrink-0 bg-line" />
 
 				{MARKER_COLORS.map((c) => (
 					<button
@@ -717,7 +720,7 @@ function Dock({
 						aria-label={`${c.id} marker`}
 						aria-pressed={colorId === c.id}
 						className={cn(
-							"grid size-9 place-items-center rounded-full transition-transform",
+							"grid size-8 shrink-0 place-items-center rounded-full transition-transform sm:size-9",
 							colorId === c.id ? "scale-110" : "opacity-80 hover:opacity-100",
 						)}
 					>

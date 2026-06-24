@@ -61,7 +61,7 @@ function SpacePage() {
 	}
 
 	return (
-		<div className="flex h-screen flex-col overflow-hidden bg-paper-2/40">
+		<div className="flex h-dvh flex-col overflow-hidden bg-paper-2/40">
 			<header className="z-30 flex h-14 items-center justify-between gap-3 border-b border-line bg-paper/85 px-3 backdrop-blur-md sm:px-4">
 				<div className="flex min-w-0 items-center gap-3">
 					<Logo to="/dashboard" />

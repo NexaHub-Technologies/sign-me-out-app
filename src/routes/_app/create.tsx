@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
@@ -7,6 +7,7 @@ import { Input } from "#/components/ui/input.tsx";
 import { Label } from "#/components/ui/label.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { cn } from "#/lib/utils.ts";
+import { createSpace } from "#/server/spaces.ts";
 
 export const Route = createFileRoute("/_app/create")({
 	component: CreatePage,
@@ -22,12 +23,29 @@ const boardColors = [
 function CreatePage() {
 	const navigate = useNavigate();
 	const [color, setColor] = useState("paper");
+	const [submitting, setSubmitting] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-	function onSubmit(e: FormEvent) {
+	async function onSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		// TODO: create the space in the DB and use its real id.
-		const id = `space-${Math.random().toString(36).slice(2, 8)}`;
-		navigate({ to: "/s/$spaceId", params: { spaceId: id } });
+		setError(null);
+		setSubmitting(true);
+		const form = new FormData(e.currentTarget);
+		try {
+			const { slug } = await createSpace({
+				data: {
+					title: String(form.get("title") ?? ""),
+					note: String(form.get("note") ?? ""),
+					boardColor: color,
+				},
+			});
+			navigate({ to: "/s/$spaceId", params: { spaceId: slug } });
+		} catch (err) {
+			setError(
+				err instanceof Error ? err.message : "Could not create the space",
+			);
+			setSubmitting(false);
+		}
 	}
 
 	return (
@@ -91,8 +109,25 @@ function CreatePage() {
 					</div>
 				</fieldset>
 
-				<Button type="submit" size="lg" className="w-fit rounded-full">
-					Open the canvas <ArrowRight className="size-4" />
+				{error && (
+					<p className="text-sm font-medium text-destructive">{error}</p>
+				)}
+
+				<Button
+					type="submit"
+					size="lg"
+					className="w-fit rounded-full"
+					disabled={submitting}
+				>
+					{submitting ? (
+						<>
+							<Loader2 className="size-4 animate-spin" /> Creating…
+						</>
+					) : (
+						<>
+							Open the canvas <ArrowRight className="size-4" />
+						</>
+					)}
 				</Button>
 			</form>
 		</div>

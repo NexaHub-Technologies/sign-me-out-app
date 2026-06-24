@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
 import { Route as SSpaceIdRouteImport } from './routes/s.$spaceId'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as MarketingWearRouteImport } from './routes/_marketing/wear'
 import { Route as MarketingHowItWorksRouteImport } from './routes/_marketing/how-it-works'
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
@@ -41,6 +42,11 @@ const MarketingIndexRoute = MarketingIndexRouteImport.update({
 const SSpaceIdRoute = SSpaceIdRouteImport.update({
   id: '/s/$spaceId',
   path: '/s/$spaceId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketingWearRoute = MarketingWearRouteImport.update({
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof AuthSignupRoute
   '/how-it-works': typeof MarketingHowItWorksRoute
   '/wear': typeof MarketingWearRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/s/$spaceId': typeof SSpaceIdRoute
 }
 export interface FileRoutesByTo {
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/signup': typeof AuthSignupRoute
   '/how-it-works': typeof MarketingHowItWorksRoute
   '/wear': typeof MarketingWearRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/s/$spaceId': typeof SSpaceIdRoute
 }
 export interface FileRoutesById {
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/_auth/signup': typeof AuthSignupRoute
   '/_marketing/how-it-works': typeof MarketingHowItWorksRoute
   '/_marketing/wear': typeof MarketingWearRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/s/$spaceId': typeof SSpaceIdRoute
   '/_marketing/': typeof MarketingIndexRoute
 }
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/how-it-works'
     | '/wear'
+    | '/auth/callback'
     | '/s/$spaceId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/how-it-works'
     | '/wear'
+    | '/auth/callback'
     | '/s/$spaceId'
   id:
     | '__root__'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/_auth/signup'
     | '/_marketing/how-it-works'
     | '/_marketing/wear'
+    | '/auth/callback'
     | '/s/$spaceId'
     | '/_marketing/'
   fileRoutesById: FileRoutesById
@@ -148,6 +160,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   MarketingRoute: typeof MarketingRouteWithChildren
+  AuthCallbackRoute: typeof AuthCallbackRoute
   SSpaceIdRoute: typeof SSpaceIdRoute
 }
 
@@ -186,6 +199,13 @@ declare module '@tanstack/react-router' {
       path: '/s/$spaceId'
       fullPath: '/s/$spaceId'
       preLoaderRoute: typeof SSpaceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_marketing/wear': {
@@ -277,6 +297,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   MarketingRoute: MarketingRouteWithChildren,
+  AuthCallbackRoute: AuthCallbackRoute,
   SSpaceIdRoute: SSpaceIdRoute,
 }
 export const routeTree = rootRouteImport

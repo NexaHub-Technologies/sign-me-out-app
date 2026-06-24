@@ -1,70 +1,14 @@
 import { relations } from "drizzle-orm/relations";
 
-import {
-	canvasItems,
-	exportJobs,
-	orders,
-	payments,
-	signatures,
-	signSpaces,
-	spaceMemberships,
-} from "./schema.ts";
-
-export const exportJobsRelations = relations(exportJobs, ({ one }) => ({
-	order: one(orders, {
-		fields: [exportJobs.orderId],
-		references: [orders.id],
-	}),
-	signSpace: one(signSpaces, {
-		fields: [exportJobs.spaceId],
-		references: [signSpaces.id],
-	}),
-}));
-
-export const ordersRelations = relations(orders, ({ one, many }) => ({
-	exportJobs: many(exportJobs),
-	signSpace: one(signSpaces, {
-		fields: [orders.spaceId],
-		references: [signSpaces.id],
-	}),
-	payments: many(payments),
-}));
+import { marks, signSpaces } from "./schema.ts";
 
 export const signSpacesRelations = relations(signSpaces, ({ many }) => ({
-	exportJobs: many(exportJobs),
-	orders: many(orders),
-	signatures: many(signatures),
-	spaceMemberships: many(spaceMemberships),
-	canvasItems: many(canvasItems),
+	marks: many(marks),
 }));
 
-export const paymentsRelations = relations(payments, ({ one }) => ({
-	order: one(orders, {
-		fields: [payments.orderId],
-		references: [orders.id],
-	}),
-}));
-
-export const signaturesRelations = relations(signatures, ({ one }) => ({
-	signSpace: one(signSpaces, {
-		fields: [signatures.spaceId],
-		references: [signSpaces.id],
-	}),
-}));
-
-export const spaceMembershipsRelations = relations(
-	spaceMemberships,
-	({ one }) => ({
-		signSpace: one(signSpaces, {
-			fields: [spaceMemberships.spaceId],
-			references: [signSpaces.id],
-		}),
-	}),
-);
-
-export const canvasItemsRelations = relations(canvasItems, ({ one }) => ({
-	signSpace: one(signSpaces, {
-		fields: [canvasItems.spaceId],
+export const marksRelations = relations(marks, ({ one }) => ({
+	space: one(signSpaces, {
+		fields: [marks.spaceId],
 		references: [signSpaces.id],
 	}),
 }));

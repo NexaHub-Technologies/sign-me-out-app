@@ -7,6 +7,7 @@ import { cn } from "#/lib/utils.ts";
 import { listMySpaces } from "#/server/spaces.ts";
 
 export const Route = createFileRoute("/_app/dashboard")({
+	ssr: false,
 	loader: async () => listMySpaces(),
 	component: DashboardPage,
 });

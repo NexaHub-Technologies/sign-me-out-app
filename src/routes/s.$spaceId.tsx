@@ -23,6 +23,7 @@ import { getSpaceBySlug, lockSpace } from "#/server/spaces.ts";
 const SignCanvas = lazy(() => import("#/features/canvas/sign-canvas.tsx"));
 
 export const Route = createFileRoute("/s/$spaceId")({
+	ssr: false,
 	loader: async ({ params }) => {
 		const data = await getSpaceBySlug({ data: params.spaceId });
 		if (!data) throw notFound();

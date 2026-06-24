@@ -4,6 +4,8 @@ import { type FormEvent, useState } from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import { Label } from "#/components/ui/label.tsx";
+import { signInWithGoogle } from "#/features/auth/actions.ts";
+import { GoogleButton } from "#/features/auth/google-button.tsx";
 import { getSupabaseBrowserClient } from "#/lib/supabase.ts";
 
 export function SignInDialog({
@@ -23,15 +25,11 @@ export function SignInDialog({
 
 	async function continueWithGoogle() {
 		setBusy(true);
-		const sb = getSupabaseBrowserClient();
-		await sb.auth.signInWithOAuth({
-			provider: "google",
-			options: {
-				redirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(
-					location.pathname,
-				)}`,
-			},
-		});
+		const err = await signInWithGoogle(location.pathname);
+		if (err) {
+			setMessage(err);
+			setBusy(false);
+		}
 	}
 
 	async function onEmailSubmit(e: FormEvent) {
@@ -78,15 +76,13 @@ export function SignInDialog({
 					Your signature is saved under your name.
 				</p>
 
-				<Button
-					type="button"
-					variant="outline"
-					className="mt-5 w-full rounded-full"
-					onClick={continueWithGoogle}
-					disabled={busy}
-				>
-					Continue with Google
-				</Button>
+				<div className="mt-5">
+					<GoogleButton
+						label="Continue with Google"
+						onClick={continueWithGoogle}
+						disabled={busy}
+					/>
+				</div>
 
 				<div className="my-4 flex items-center gap-3 text-xs text-ink-faint">
 					<span className="h-px flex-1 bg-line" /> or{" "}

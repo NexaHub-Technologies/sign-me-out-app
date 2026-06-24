@@ -17,10 +17,20 @@ function AuthCallback() {
 				const sb = getSupabaseBrowserClient();
 				await sb.auth.exchangeCodeForSession(window.location.href);
 			} catch {
-				/* already exchanged or no code */
+				/* already exchanged by detectSessionInUrl, or no code present */
 			}
-			const next =
-				new URLSearchParams(window.location.search).get("next") || "/dashboard";
+			// `next` is stashed before the OAuth redirect so the redirect URL itself
+			// stays clean (…/auth/callback) and easy to allowlist in Supabase.
+			let next = "/dashboard";
+			try {
+				next =
+					sessionStorage.getItem("smo_next") ||
+					new URLSearchParams(window.location.search).get("next") ||
+					"/dashboard";
+				sessionStorage.removeItem("smo_next");
+			} catch {
+				/* sessionStorage unavailable */
+			}
 			navigate({ to: next, replace: true });
 		})();
 	}, [navigate]);

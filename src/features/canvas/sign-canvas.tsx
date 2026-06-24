@@ -1,14 +1,17 @@
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { Hand, ImageIcon, Mic, PenLine, Type } from "lucide-react";
+import { Hand, ImageIcon, Mic, Minus, PenLine, Plus, Type } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
-import { Layer, Line, Stage } from "react-konva";
+import { Layer, Line, Stage, Transformer } from "react-konva";
 
 import { SignInDialog } from "#/features/auth/sign-in-dialog.tsx";
 import { useSessionUser } from "#/features/auth/use-session-user.ts";
 import { useMarksStore } from "#/features/canvas/marks-store.ts";
 import { loadImageDims, uploadMedia } from "#/features/canvas/media.ts";
-import { RenderMark } from "#/features/canvas/render-mark.tsx";
+import {
+	RenderMark,
+	type TransformPatch,
+} from "#/features/canvas/render-mark.tsx";
 import { strokeToFlatPath } from "#/features/canvas/stroke.ts";
 import {
 	MARKER_COLORS,
@@ -35,6 +38,8 @@ const STROKE_SIZE = 9;
 const TEXT_FONT = 30;
 const TEXT_WIDTH = 260;
 const PHOTO_MAX = 280;
+const FONT_MIN = 14;
+const FONT_MAX = 96;
 
 type Draft = { x: number; y: number; color: string; points: StrokePoint[] };
 type TextDraft = {
@@ -55,6 +60,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 	const stageRef = useRef<Konva.Stage>(null);
 	const draftRef = useRef<Draft | null>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const trRef = useRef<Konva.Transformer>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const recorderRef = useRef<MediaRecorder | null>(null);
 	const chunksRef = useRef<Blob[]>([]);
@@ -71,6 +77,8 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 	const [recording, setRecording] = useState(false);
 	const [textDraft, setTextDraft] = useState<TextDraft | null>(null);
 	const [textValue, setTextValue] = useState("");
+	const [fontSize, setFontSize] = useState(TEXT_FONT);
+	const [selectedId, setSelectedId] = useState<string | null>(null);
 
 	const { user, ready } = useSessionUser();
 	const { marks, count, upsert, remove } = useMarksStore(initialMarks);
@@ -96,6 +104,22 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 	useEffect(() => {
 		if (textDraft) requestAnimationFrame(() => textareaRef.current?.focus());
 	}, [textDraft]);
+
+	// Selection is only meaningful with the Move tool.
+	useEffect(() => {
+		if (tool !== "move") setSelectedId(null);
+	}, [tool]);
+
+	// Attach the Transformer (bounding box) to the selected node.
+	useEffect(() => {
+		const tr = trRef.current;
+		const stage = stageRef.current;
+		if (!tr || !stage) return;
+		const node =
+			selectedId && tool === "move" ? stage.findOne(`#${selectedId}`) : null;
+		tr.nodes(node ? [node] : []);
+		tr.getLayer()?.batchDraw();
+	}, [selectedId, tool, marks]);
 
 	function worldPoint() {
 		return stageRef.current?.getRelativePointerPosition() ?? null;
@@ -239,7 +263,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 				x: d.worldX,
 				y: d.worldY,
 				text: value,
-				fontSize: TEXT_FONT,
+				fontSize,
 				width: TEXT_WIDTH,
 				color: colorHex,
 			}),
@@ -250,7 +274,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 				x: d.worldX,
 				y: d.worldY,
 				text: value,
-				fontSize: TEXT_FONT,
+				fontSize,
 				width: TEXT_WIDTH,
 				color: colorHex,
 			},
@@ -368,16 +392,26 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 		if (locked) return;
 		if (tool === "pen") startStroke(e);
 		else if (tool === "text") startText();
+		else if (tool === "move" && e.target === e.target.getStage()) {
+			setSelectedId(null); // click empty space to deselect
+		}
 	}
 
-	// ---- move an existing mark (author/host only, enforced server-side) -----
-	function onMarkDragEnd(id: string, x: number, y: number) {
+	// ---- move / transform an existing mark (author/host, enforced server-side)
+	function persistTransform(
+		id: string,
+		patch: { x: number; y: number; rotation?: number; scale?: number },
+	) {
 		const m = marks.find((mk) => mk.id === id);
 		if (!m) return;
-		upsert({ ...m, x, y });
-		updateMark({
-			data: { id, x, y, rotation: m.rotation, scale: m.scale },
-		}).catch((err: Error) => {
+		const next = {
+			x: patch.x,
+			y: patch.y,
+			rotation: patch.rotation ?? m.rotation,
+			scale: patch.scale ?? m.scale,
+		};
+		upsert({ ...m, ...next });
+		updateMark({ data: { id, ...next } }).catch((err: Error) => {
 			upsert(m); // revert
 			if (err.message.includes("Sign in")) setSignInOpen(true);
 			else {
@@ -385,6 +419,12 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 				setTimeout(() => setSaveError(null), 3000);
 			}
 		});
+	}
+	function onMarkDragEnd(id: string, x: number, y: number) {
+		persistTransform(id, { x, y });
+	}
+	function onMarkTransformEnd(id: string, patch: TransformPatch) {
+		persistTransform(id, patch);
 	}
 
 	const isPanning = tool === "move";
@@ -420,6 +460,8 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 								mark={mark}
 								draggable={isPanning}
 								onDragEnd={onMarkDragEnd}
+								onSelect={isPanning ? setSelectedId : undefined}
+								onTransformEnd={onMarkTransformEnd}
 							/>
 						))}
 						{draft && (
@@ -432,6 +474,26 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 								listening={false}
 							/>
 						)}
+						<Transformer
+							ref={trRef}
+							rotateEnabled
+							keepRatio
+							enabledAnchors={[
+								"top-left",
+								"top-right",
+								"bottom-left",
+								"bottom-right",
+							]}
+							anchorStroke="#15784a"
+							anchorFill="#ffffff"
+							anchorCornerRadius={6}
+							borderStroke="#15784a"
+							borderDash={[4, 4]}
+							rotateAnchorOffset={28}
+							boundBoxFunc={(oldBox, newBox) =>
+								newBox.width < 12 || newBox.height < 12 ? oldBox : newBox
+							}
+						/>
 					</Layer>
 				</Stage>
 			)}
@@ -527,6 +589,10 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 				canSign={!needsAuth}
 				colorId={colorId}
 				setColorId={setColorId}
+				fontSize={fontSize}
+				setFontSize={(n) =>
+					setFontSize(Math.min(FONT_MAX, Math.max(FONT_MIN, n)))
+				}
 				onRequireAuth={() => setSignInOpen(true)}
 				onPick={(id) => {
 					if (id === "photo") startPhoto();
@@ -561,6 +627,8 @@ function Dock({
 	canSign,
 	colorId,
 	setColorId,
+	fontSize,
+	setFontSize,
 	onRequireAuth,
 	onPick,
 }: {
@@ -570,6 +638,8 @@ function Dock({
 	canSign: boolean;
 	colorId: MarkerColorId;
 	setColorId: (c: MarkerColorId) => void;
+	fontSize: number;
+	setFontSize: (n: number) => void;
 	onRequireAuth: () => void;
 	onPick: (t: ToolId) => void;
 }) {
@@ -583,6 +653,34 @@ function Dock({
 	return (
 		<div className="absolute bottom-5 left-1/2 z-20 -translate-x-1/2">
 			<div className="flex items-center gap-1 rounded-2xl border border-line bg-surface-strong p-1.5 shadow-lg backdrop-blur-md">
+				{tool === "text" && (
+					<>
+						<span className="flex items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">
+							<button
+								type="button"
+								onClick={() => setFontSize(fontSize - 6)}
+								title="Smaller text"
+								aria-label="Smaller text"
+								className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
+							>
+								<Minus className="size-4" />
+							</button>
+							<span className="min-w-9 text-center text-sm font-semibold tabular-nums text-ink">
+								{fontSize}
+							</span>
+							<button
+								type="button"
+								onClick={() => setFontSize(fontSize + 6)}
+								title="Bigger text"
+								aria-label="Bigger text"
+								className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
+							>
+								<Plus className="size-4" />
+							</button>
+						</span>
+						<span className="mx-1 h-7 w-px bg-line" />
+					</>
+				)}
 				{TOOLS.map((t) => {
 					const active = tool === t.id || (t.id === "voice" && recording);
 					return (

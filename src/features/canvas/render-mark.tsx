@@ -34,14 +34,25 @@ function useImage(url: string | null | undefined) {
 	return img;
 }
 
+export type TransformPatch = {
+	x: number;
+	y: number;
+	rotation: number;
+	scale: number;
+};
+
 export function RenderMark({
 	mark,
 	draggable,
 	onDragEnd,
+	onSelect,
+	onTransformEnd,
 }: {
 	mark: Mark;
 	draggable?: boolean;
 	onDragEnd?: (id: string, x: number, y: number) => void;
+	onSelect?: (id: string) => void;
+	onTransformEnd?: (id: string, patch: TransformPatch) => void;
 }) {
 	const common = {
 		id: mark.id,
@@ -54,6 +65,17 @@ export function RenderMark({
 		draggable,
 		onDragEnd: (e: KonvaEventObject<DragEvent>) =>
 			onDragEnd?.(mark.id, e.target.x(), e.target.y()),
+		onClick: () => onSelect?.(mark.id),
+		onTap: () => onSelect?.(mark.id),
+		onTransformEnd: (e: KonvaEventObject<Event>) => {
+			const n = e.target;
+			onTransformEnd?.(mark.id, {
+				x: n.x(),
+				y: n.y(),
+				rotation: n.rotation(),
+				scale: n.scaleX(),
+			});
+		},
 	};
 
 	switch (mark.kind) {
@@ -100,6 +122,9 @@ type CommonProps = {
 	scaleY: number;
 	draggable?: boolean;
 	onDragEnd: (e: KonvaEventObject<DragEvent>) => void;
+	onClick: () => void;
+	onTap: () => void;
+	onTransformEnd: (e: KonvaEventObject<Event>) => void;
 };
 
 function PhotoMark({ mark, common }: { mark: Mark; common: CommonProps }) {

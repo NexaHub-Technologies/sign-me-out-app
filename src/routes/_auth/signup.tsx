@@ -1,9 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import type { FormEvent } from "react";
+import { Loader2 } from "lucide-react";
+import { type FormEvent, useState } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import { Label } from "#/components/ui/label.tsx";
+import { signInWithGoogle } from "#/features/auth/actions.ts";
+import { GoogleButton } from "#/features/auth/google-button.tsx";
+import { getSupabaseBrowserClient } from "#/lib/supabase.ts";
 
 export const Route = createFileRoute("/_auth/signup")({
 	component: SignupPage,
@@ -11,11 +15,43 @@ export const Route = createFileRoute("/_auth/signup")({
 
 function SignupPage() {
 	const navigate = useNavigate();
+	const [busy, setBusy] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [notice, setNotice] = useState<string | null>(null);
 
-	function onSubmit(e: FormEvent) {
+	async function onSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		// TODO: create account, then send them to name their first space.
-		navigate({ to: "/create" });
+		setError(null);
+		setNotice(null);
+		setBusy(true);
+		const form = new FormData(e.currentTarget);
+		const sb = getSupabaseBrowserClient();
+		const { data, error } = await sb.auth.signUp({
+			email: String(form.get("email") ?? ""),
+			password: String(form.get("password") ?? ""),
+			options: { data: { full_name: String(form.get("name") ?? "") } },
+		});
+		if (error) {
+			setError(error.message);
+			setBusy(false);
+		} else if (!data.session) {
+			// email confirmation is on — no session yet
+			setNotice("Check your email to confirm your account, then log in.");
+			setBusy(false);
+		} else {
+			navigate({ to: "/create" });
+		}
+	}
+
+	async function onGoogle() {
+		setError(null);
+		setNotice(null);
+		setBusy(true);
+		const err = await signInWithGoogle("/create");
+		if (err) {
+			setError(err);
+			setBusy(false);
+		}
 	}
 
 	return (
@@ -27,7 +63,20 @@ function SignupPage() {
 				Start free. You'll have a board ready in a minute.
 			</p>
 
-			<form onSubmit={onSubmit} className="mt-7 flex flex-col gap-4">
+			<div className="mt-7">
+				<GoogleButton
+					label="Sign up with Google"
+					onClick={onGoogle}
+					disabled={busy}
+				/>
+			</div>
+
+			<div className="my-5 flex items-center gap-3 text-xs text-ink-faint">
+				<span className="h-px flex-1 bg-line" /> or{" "}
+				<span className="h-px flex-1 bg-line" />
+			</div>
+
+			<form onSubmit={onSubmit} className="flex flex-col gap-4">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="name">Full name</Label>
 					<Input
@@ -58,13 +107,30 @@ function SignupPage() {
 						name="password"
 						type="password"
 						required
-						placeholder="At least 8 characters"
+						placeholder="At least 6 characters"
 						autoComplete="new-password"
 						className="h-11 bg-card"
 					/>
 				</div>
-				<Button type="submit" size="lg" className="mt-1 w-full rounded-full">
-					Create my space
+
+				{error && (
+					<p className="text-sm font-medium text-destructive">{error}</p>
+				)}
+				{notice && (
+					<p className="text-sm font-medium text-marker-green-deep">{notice}</p>
+				)}
+
+				<Button
+					type="submit"
+					size="lg"
+					className="mt-1 w-full rounded-full"
+					disabled={busy}
+				>
+					{busy ? (
+						<Loader2 className="size-4 animate-spin" />
+					) : (
+						"Create my space"
+					)}
 				</Button>
 			</form>
 

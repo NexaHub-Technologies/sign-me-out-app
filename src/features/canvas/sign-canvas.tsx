@@ -1,6 +1,15 @@
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { Hand, ImageIcon, Mic, Minus, PenLine, Plus, Type } from "lucide-react";
+import {
+	Hand,
+	ImageIcon,
+	Mic,
+	Minus,
+	PenLine,
+	Plus,
+	Type,
+	ZoomIn,
+} from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Layer, Line, Stage, Transformer } from "react-konva";
 
@@ -30,7 +39,10 @@ const TOOLS: { id: ToolId; label: string; icon: typeof PenLine }[] = [
 	{ id: "photo", label: "Photo", icon: ImageIcon },
 	{ id: "voice", label: "Voice note", icon: Mic },
 	{ id: "move", label: "Move", icon: Hand },
+	{ id: "zoom", label: "Zoom", icon: ZoomIn },
 ];
+
+const ZOOM_STEP = 1.25;
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -128,6 +140,16 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 	}
 	function viewportCenter() {
 		return { x: (size.w / 2 - pos.x) / scale, y: (size.h / 2 - pos.y) / scale };
+	}
+	// Step zoom (the dock +/- buttons), keeping the viewport center fixed.
+	function zoomBy(factor: number) {
+		const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor));
+		const cx = size.w / 2;
+		const cy = size.h / 2;
+		const worldX = (cx - pos.x) / scale;
+		const worldY = (cy - pos.y) / scale;
+		setScale(next);
+		setPos({ x: cx - worldX * next, y: cy - worldY * next });
 	}
 
 	// ---- persistence -------------------------------------------------------
@@ -490,7 +512,14 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 							setPos({ x: e.target.x(), y: e.target.y() });
 						}
 					}}
-					style={{ cursor: isPanning ? "grab" : "crosshair" }}
+					style={{
+						cursor:
+							tool === "move"
+								? "grab"
+								: tool === "zoom"
+									? "zoom-in"
+									: "crosshair",
+					}}
 				>
 					<Layer>
 						{marks.map((mark) => (
@@ -639,6 +668,8 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 				setFontSize={(n) =>
 					setFontSize(Math.min(FONT_MAX, Math.max(FONT_MIN, n)))
 				}
+				scale={scale}
+				onZoom={zoomBy}
 				onRequireAuth={() => setSignInOpen(true)}
 				onPick={(id) => {
 					if (id === "photo") startPhoto();
@@ -653,6 +684,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 	// free zoom during the gesture, then commit the final scale/position to React
 	// state on touch-end so it stays the source of truth between gestures.
 	function handlePinch(e: KonvaEventObject<TouchEvent>) {
+		if (tool !== "zoom") return; // zooming is scoped to the Zoom tool
 		const touches = e.evt.touches;
 		if (touches.length < 2) return;
 		e.evt.preventDefault();
@@ -711,6 +743,7 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 	}
 
 	function handleWheel(e: KonvaEventObject<WheelEvent>) {
+		if (tool !== "zoom") return; // zooming is scoped to the Zoom tool
 		e.evt.preventDefault();
 		const pointer = stageRef.current?.getPointerPosition();
 		if (!pointer) return;
@@ -736,6 +769,8 @@ function Dock({
 	setColorId,
 	fontSize,
 	setFontSize,
+	scale,
+	onZoom,
 	onRequireAuth,
 	onPick,
 }: {
@@ -747,11 +782,15 @@ function Dock({
 	setColorId: (c: MarkerColorId) => void;
 	fontSize: number;
 	setFontSize: (n: number) => void;
+	scale: number;
+	onZoom: (factor: number) => void;
 	onRequireAuth: () => void;
 	onPick: (t: ToolId) => void;
 }) {
+	// Move and zoom are navigation tools — usable without signing in or when locked.
+	const FREE_TOOLS: ToolId[] = ["move", "zoom"];
 	function pick(id: ToolId) {
-		if (id !== "move" && !canSign) {
+		if (!FREE_TOOLS.includes(id) && !canSign) {
 			onRequireAuth();
 			return;
 		}
@@ -788,6 +827,34 @@ function Dock({
 						<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
 					</>
 				)}
+				{tool === "zoom" && (
+					<>
+						<span className="flex shrink-0 items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">
+							<button
+								type="button"
+								onClick={() => onZoom(1 / ZOOM_STEP)}
+								title="Zoom out"
+								aria-label="Zoom out"
+								className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
+							>
+								<Minus className="size-4" />
+							</button>
+							<span className="min-w-12 text-center text-sm font-semibold tabular-nums text-ink">
+								{Math.round(scale * 100)}%
+							</span>
+							<button
+								type="button"
+								onClick={() => onZoom(ZOOM_STEP)}
+								title="Zoom in"
+								aria-label="Zoom in"
+								className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
+							>
+								<Plus className="size-4" />
+							</button>
+						</span>
+						<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
+					</>
+				)}
 				{TOOLS.map((t) => {
 					const active = tool === t.id || (t.id === "voice" && recording);
 					return (
@@ -795,7 +862,7 @@ function Dock({
 							key={t.id}
 							type="button"
 							onClick={() => pick(t.id)}
-							disabled={disabled && t.id !== "move"}
+							disabled={disabled && !FREE_TOOLS.includes(t.id)}
 							title={t.label}
 							aria-label={t.label}
 							aria-pressed={active}

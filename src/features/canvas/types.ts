@@ -5,7 +5,14 @@ export type Mark = typeof marks.$inferSelect;
 
 export type StrokePoint = { x: number; y: number; pressure: number };
 
-export type ToolId = "pen" | "text" | "photo" | "voice" | "move" | "eraser";
+export type ToolId =
+	| "pen"
+	| "text"
+	| "photo"
+	| "voice"
+	| "move"
+	| "zoom"
+	| "eraser";
 
 /**
  * Marker colors as literal hex — Konva draws to a <canvas> and cannot resolve

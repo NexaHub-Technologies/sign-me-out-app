@@ -16,7 +16,11 @@ import { Layer, Line, Stage, Transformer } from "react-konva";
 import { SignInDialog } from "#/features/auth/sign-in-dialog.tsx";
 import { useSessionUser } from "#/features/auth/use-session-user.ts";
 import { useMarksStore } from "#/features/canvas/marks-store.ts";
-import { loadImageDims, uploadMedia } from "#/features/canvas/media.ts";
+import {
+	loadImageDims,
+	uploadMedia,
+	uploadVoice,
+} from "#/features/canvas/media.ts";
 import {
 	RenderMark,
 	type TransformPatch,
@@ -396,13 +400,9 @@ export default function SignCanvas({
 				const durationMs = Date.now() - recordStartRef.current;
 				const id = crypto.randomUUID();
 				try {
-					const url = await uploadMedia(
-						space.id,
-						id,
-						blob,
-						"webm",
-						"audio/webm",
-					);
+					// voice notes go to the private bucket; `url` here is a storage
+					// path, resolved to a signed URL server-side at playback time
+					const url = await uploadVoice(space.id, id, blob);
 					const c = viewportCenter();
 					persist(
 						optimisticMark({

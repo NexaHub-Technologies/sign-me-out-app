@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "#/db/index.ts";
 import { marks, signSpaces } from "#/db/schema.ts";
 import { getHostToken, getSessionUser } from "#/server/auth.ts";
+import { signVoiceUrl } from "#/server/storage.ts";
 
 export type StrokePoint = { x: number; y: number; pressure: number };
 
@@ -109,6 +110,59 @@ export const removeMark = createServerFn({ method: "POST" })
 			.set({ status: "hidden" })
 			.where(eq(marks.id, data.id));
 		return { ok: true };
+	});
+
+/**
+ * Resolve a playable URL for a voice note — only for the host (cookie token or
+ * account owner) or the recording's author. Voice files live in a private
+ * bucket, so this mints a short-lived signed URL; legacy notes stored as an
+ * absolute (public) URL are returned as-is.
+ */
+export const getVoiceUrl = createServerFn({ method: "POST" })
+	.inputValidator((input: { markId: string }) => {
+		if (!input.markId) throw new Error("Missing recording id");
+		return input;
+	})
+	.handler(async ({ data }) => {
+		const [mark] = await db
+			.select({
+				kind: marks.kind,
+				mediaUrl: marks.mediaUrl,
+				authorId: marks.authorId,
+				spaceId: marks.spaceId,
+			})
+			.from(marks)
+			.where(eq(marks.id, data.markId))
+			.limit(1);
+		if (!mark || mark.kind !== "voice" || !mark.mediaUrl) {
+			throw new Error("Recording not found");
+		}
+
+		const user = await getSessionUser();
+		let allowed = !!user && mark.authorId === user.id;
+		if (!allowed) {
+			const [space] = await db
+				.select({
+					hostToken: signSpaces.hostToken,
+					ownerId: signSpaces.ownerId,
+				})
+				.from(signSpaces)
+				.where(eq(signSpaces.id, mark.spaceId))
+				.limit(1);
+			allowed =
+				!!space &&
+				(getHostToken() === space.hostToken ||
+					(!!space.ownerId && user?.id === space.ownerId));
+		}
+		if (!allowed) {
+			throw new Error(
+				"Only the host or the author can listen to this recording",
+			);
+		}
+
+		// Legacy public uploads are already absolute URLs; private notes are paths.
+		if (/^https?:\/\//.test(mark.mediaUrl)) return { url: mark.mediaUrl };
+		return { url: await signVoiceUrl(mark.mediaUrl) };
 	});
 
 async function assertCanEdit(markId: string) {

@@ -36,7 +36,7 @@ begin
   end if;
 end $$;
 
--- ---- Storage: bucket for photos + voice notes -----------------------------
+-- ---- Storage: public bucket for photos ------------------------------------
 insert into storage.buckets (id, name, public)
 values ('space-media', 'space-media', true)
 on conflict (id) do nothing;
@@ -46,6 +46,20 @@ drop policy if exists "space_media_authenticated_insert" on storage.objects;
 create policy "space_media_authenticated_insert" on storage.objects
   for insert to authenticated
   with check (bucket_id = 'space-media');
+
+-- ---- Storage: PRIVATE bucket for voice notes ------------------------------
+-- Not public: reads go through a server-minted signed URL (see server
+-- getVoiceUrl), which re-checks that the requester is the host or the author.
+insert into storage.buckets (id, name, public)
+values ('space-voice', 'space-voice', false)
+on conflict (id) do nothing;
+
+-- Authenticated users may upload. No select policy: only the service role
+-- (used server-side to sign URLs) can read, since it bypasses RLS.
+drop policy if exists "space_voice_authenticated_insert" on storage.objects;
+create policy "space_voice_authenticated_insert" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'space-voice');
 
 -- ---- Mirror auth.users -> public.profiles on signup -----------------------
 create or replace function public.handle_new_user()

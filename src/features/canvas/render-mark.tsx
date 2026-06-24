@@ -12,6 +12,7 @@ import {
 
 import { strokeToFlatPath } from "#/features/canvas/stroke.ts";
 import type { Mark } from "#/features/canvas/types.ts";
+import { getVoiceUrl } from "#/server/marks.ts";
 
 const HAND_FONT = "Caveat, Comic Sans MS, cursive";
 
@@ -200,12 +201,21 @@ function VoiceMark({
 		return () => audioRef.current?.pause();
 	}, []);
 
-	function toggle(e: KonvaEventObject<Event>) {
+	async function toggle(e: KonvaEventObject<Event>) {
 		e.cancelBubble = true; // play/pause only — don't also select the chip
 		if (!canListen || !mark.mediaUrl) return; // host & author only
 		let audio = audioRef.current;
 		if (!audio) {
-			audio = new window.Audio(mark.mediaUrl);
+			// Voice files are private; the server mints a signed URL after
+			// re-checking that we're the host or the author.
+			let url: string;
+			try {
+				const res = await getVoiceUrl({ data: { markId: mark.id } });
+				url = res.url;
+			} catch {
+				return;
+			}
+			audio = new window.Audio(url);
 			audio.addEventListener("play", () => setPlaying(true));
 			audio.addEventListener("pause", () => setPlaying(false));
 			audio.addEventListener("ended", () => setPlaying(false));

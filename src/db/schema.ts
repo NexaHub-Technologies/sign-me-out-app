@@ -23,6 +23,9 @@ export const signSpaces = pgTable(
 		note: text(),
 		boardColor: text("board_color").default("paper").notNull(),
 		hostToken: uuid("host_token").notNull(),
+		// The authenticated creator, when signed in — lets a host see their spaces
+		// across devices. Null for spaces created by a cookie-only (anonymous) host.
+		ownerId: uuid("owner_id"),
 		status: text().default("open").notNull(), // 'open' | 'locked'
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
 			.defaultNow()
@@ -31,7 +34,10 @@ export const signSpaces = pgTable(
 			.defaultNow()
 			.notNull(),
 	},
-	(table) => [index("sign_spaces_slug_idx").on(table.slug)],
+	(table) => [
+		index("sign_spaces_slug_idx").on(table.slug),
+		index("sign_spaces_owner_idx").on(table.ownerId),
+	],
 ).enableRLS();
 
 /**

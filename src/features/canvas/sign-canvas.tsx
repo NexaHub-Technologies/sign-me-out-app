@@ -67,7 +67,11 @@ export type SignCanvasProps = {
 	isHost: boolean;
 };
 
-export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
+export default function SignCanvas({
+	space,
+	initialMarks,
+	isHost,
+}: SignCanvasProps) {
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const stageRef = useRef<Konva.Stage>(null);
 	const draftRef = useRef<Draft | null>(null);
@@ -409,6 +413,8 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 							mediaUrl: url,
 							durationMs,
 							color: colorHex,
+							// so the creator can play their own clip before the row saves
+							authorId: user?.id ?? null,
 						}),
 						{
 							id,
@@ -530,6 +536,8 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 								onDragEnd={onMarkDragEnd}
 								onSelect={isPanning ? setSelectedId : undefined}
 								onTransformEnd={onMarkTransformEnd}
+								viewerId={user?.id ?? null}
+								isHost={isHost}
 							/>
 						))}
 						{draft && (

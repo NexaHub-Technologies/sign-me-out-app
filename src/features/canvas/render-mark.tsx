@@ -1,6 +1,7 @@
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useEffect, useRef, useState } from "react";
 import {
+	Arc,
 	Circle,
 	Group,
 	Image as KonvaImage,
@@ -47,12 +48,16 @@ export function RenderMark({
 	onDragEnd,
 	onSelect,
 	onTransformEnd,
+	viewerId,
+	isHost,
 }: {
 	mark: Mark;
 	draggable?: boolean;
 	onDragEnd?: (id: string, x: number, y: number) => void;
 	onSelect?: (id: string) => void;
 	onTransformEnd?: (id: string, patch: TransformPatch) => void;
+	viewerId?: string | null;
+	isHost?: boolean;
 }) {
 	const common = {
 		id: mark.id,
@@ -106,7 +111,16 @@ export function RenderMark({
 		case "photo":
 			return <PhotoMark mark={mark} common={common} />;
 		case "voice":
-			return <VoiceMark mark={mark} common={common} />;
+			return (
+				<VoiceMark
+					mark={mark}
+					common={common}
+					// Only the host or the recording's author may listen.
+					canListen={
+						!!isHost || (mark.authorId != null && mark.authorId === viewerId)
+					}
+				/>
+			);
 		default:
 			return null;
 	}
@@ -166,7 +180,15 @@ function PhotoMark({ mark, common }: { mark: Mark; common: CommonProps }) {
 	);
 }
 
-function VoiceMark({ mark, common }: { mark: Mark; common: CommonProps }) {
+function VoiceMark({
+	mark,
+	common,
+	canListen,
+}: {
+	mark: Mark;
+	common: CommonProps;
+	canListen: boolean;
+}) {
 	const seconds = Math.round((mark.durationMs ?? 0) / 1000);
 	const label = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 	const color = mark.color ?? "#15784a";
@@ -180,7 +202,7 @@ function VoiceMark({ mark, common }: { mark: Mark; common: CommonProps }) {
 
 	function toggle(e: KonvaEventObject<Event>) {
 		e.cancelBubble = true; // play/pause only — don't also select the chip
-		if (!mark.mediaUrl) return;
+		if (!canListen || !mark.mediaUrl) return; // host & author only
 		let audio = audioRef.current;
 		if (!audio) {
 			audio = new window.Audio(mark.mediaUrl);
@@ -195,6 +217,19 @@ function VoiceMark({ mark, common }: { mark: Mark; common: CommonProps }) {
 
 	return (
 		<Group {...common}>
+			{/* author's name, above the recording */}
+			<Text
+				text={mark.authorName}
+				x={0}
+				y={-18}
+				width={150}
+				align="center"
+				fontSize={12}
+				fontStyle="600"
+				fontFamily="Manrope, sans-serif"
+				fill="#56544c"
+				listening={false}
+			/>
 			<Rect
 				width={150}
 				height={44}
@@ -206,10 +241,37 @@ function VoiceMark({ mark, common }: { mark: Mark; common: CommonProps }) {
 				shadowBlur={10}
 				shadowOffsetY={3}
 			/>
-			{/* play / pause button */}
+			{/* play / pause / locked button */}
 			<Group onClick={toggle} onTap={toggle}>
-				<Circle x={22} y={22} radius={13} fill={color} />
-				{playing ? (
+				<Circle
+					x={22}
+					y={22}
+					radius={13}
+					fill={color}
+					opacity={canListen ? 1 : 0.55}
+				/>
+				{!canListen ? (
+					// padlock: shackle (half ring) + body
+					<>
+						<Arc
+							x={22}
+							y={21}
+							innerRadius={2.5}
+							outerRadius={4}
+							angle={180}
+							rotation={180}
+							fill="#fff"
+						/>
+						<Rect
+							x={18}
+							y={21}
+							width={8}
+							height={7}
+							cornerRadius={1.5}
+							fill="#fff"
+						/>
+					</>
+				) : playing ? (
 					<>
 						<Rect
 							x={18}
@@ -242,7 +304,7 @@ function VoiceMark({ mark, common }: { mark: Mark; common: CommonProps }) {
 					height={bar.h}
 					cornerRadius={1.5}
 					fill={color}
-					opacity={playing ? 1 : 0.8}
+					opacity={playing ? 1 : canListen ? 0.8 : 0.4}
 				/>
 			))}
 			<Text

@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=24 <25",
-    "npm": ">=11"
+    "node": ">=22"
   },
+  "packageManager": "npm@10.9.2",
   "imports": {
     "#/*": "./src/*"
   },

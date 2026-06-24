@@ -59,6 +59,10 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const stageRef = useRef<Konva.Stage>(null);
 	const draftRef = useRef<Draft | null>(null);
+	const pinchRef = useRef<{
+		dist: number;
+		center: { x: number; y: number };
+	} | null>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const textWasOpenRef = useRef(false);
 	const textOpenedAtRef = useRef(0);
@@ -479,6 +483,8 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 					onPointerDown={onPointerDown}
 					onPointerMove={extendStroke}
 					onPointerUp={onPointerUp}
+					onTouchMove={handlePinch}
+					onTouchEnd={endPinch}
 					onDragEnd={(e) => {
 						if (e.target === e.target.getStage()) {
 							setPos({ x: e.target.x(), y: e.target.y() });
@@ -642,6 +648,60 @@ export default function SignCanvas({ space, initialMarks }: SignCanvasProps) {
 			/>
 		</div>
 	);
+
+	// Pinch-to-zoom (two fingers). We mutate the stage directly for smooth, lag-
+	// free zoom during the gesture, then commit the final scale/position to React
+	// state on touch-end so it stays the source of truth between gestures.
+	function handlePinch(e: KonvaEventObject<TouchEvent>) {
+		const touches = e.evt.touches;
+		if (touches.length < 2) return;
+		e.evt.preventDefault();
+		const stage = stageRef.current;
+		if (!stage) return;
+		if (stage.isDragging()) stage.stopDrag();
+		draftRef.current = null; // a two-finger gesture is a zoom, not a stroke
+
+		const rect = stage.container().getBoundingClientRect();
+		const t1 = touches[0];
+		const t2 = touches[1];
+		const p1 = { x: t1.clientX - rect.left, y: t1.clientY - rect.top };
+		const p2 = { x: t2.clientX - rect.left, y: t2.clientY - rect.top };
+		const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+		const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+
+		const prev = pinchRef.current;
+		if (!prev) {
+			pinchRef.current = { dist, center };
+			return;
+		}
+
+		const curScale = stage.scaleX();
+		const worldX = (center.x - stage.x()) / curScale;
+		const worldY = (center.y - stage.y()) / curScale;
+		const nextScale = Math.min(
+			MAX_SCALE,
+			Math.max(MIN_SCALE, curScale * (dist / prev.dist)),
+		);
+		// Keep the world point under the fingers fixed, and follow finger panning.
+		const dx = center.x - prev.center.x;
+		const dy = center.y - prev.center.y;
+		stage.scale({ x: nextScale, y: nextScale });
+		stage.position({
+			x: center.x - worldX * nextScale + dx,
+			y: center.y - worldY * nextScale + dy,
+		});
+		stage.batchDraw();
+		pinchRef.current = { dist, center };
+	}
+
+	function endPinch(e: KonvaEventObject<TouchEvent>) {
+		if (!pinchRef.current || e.evt.touches.length >= 2) return;
+		pinchRef.current = null;
+		const stage = stageRef.current;
+		if (!stage) return;
+		setScale(stage.scaleX());
+		setPos({ x: stage.x(), y: stage.y() });
+	}
 
 	function handleWheel(e: KonvaEventObject<WheelEvent>) {
 		e.evt.preventDefault();

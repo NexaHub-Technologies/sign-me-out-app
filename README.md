@@ -115,14 +115,13 @@ npm run db:migrate   # apply migrations
 npm run db:studio    # Drizzle Studio
 ```
 
-## Deploy to Railway
+## Deploy to Vercel
 
-This repo ships with `nixpacks.toml` so Railway detects the build automatically:
-
-1. Push the repo to GitHub.
-2. Create a project from the repo at https://railway.com/new.
-3. In **Variables**, add `DATABASE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY`, and `PAYSTACK_SECRET_KEY` (plus `VITE_PAYSTACK_PUBLIC_KEY`
-   if you use it).
+1. Push the repo to GitHub and import it at https://vercel.com/new.
+2. Vercel auto-detects the Vite build; Nitro detects the Vercel environment and emits the
+   right output automatically (build command `npm run build`).
+3. In **Settings → Environment Variables**, add `DATABASE_URL`, `VITE_SUPABASE_URL`,
+   `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `PAYSTACK_SECRET_KEY`
+   (plus `VITE_PAYSTACK_PUBLIC_KEY` if you use it).
 4. Add your production URL to the Supabase Google redirect allowlist, and use your
    **live** Paystack keys in production.

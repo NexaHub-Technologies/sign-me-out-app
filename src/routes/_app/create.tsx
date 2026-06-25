@@ -102,7 +102,7 @@ function CreatePage() {
 						id="title"
 						name="title"
 						required
-						placeholder="e.g. CSC Class of 2026"
+						placeholder="Give your space a name e.g Sign Out Day"
 						className="h-12 bg-card text-base"
 					/>
 				</div>

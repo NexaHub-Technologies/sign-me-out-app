@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 
 import { db } from "#/db/index.ts";
 import { marks, signSpaces } from "#/db/schema.ts";
+import { BOARD_COLOR_IDS } from "#/lib/board-colors.ts";
 import {
 	ensureHostToken,
 	getHostToken,
@@ -12,7 +13,7 @@ import {
 import {
 	assertSpacePaymentPaid,
 	consumeSpacePayment,
-} from "#/server/payments.ts";
+} from "#/server/payments-core.ts";
 
 function slugify(title: string) {
 	const base = title
@@ -36,10 +37,13 @@ export const createSpace = createServerFn({ method: "POST" })
 			if (!title) throw new Error("A space name is required");
 			const paymentReference = input.paymentReference?.trim();
 			if (!paymentReference) throw new Error("Payment is required");
+			const boardColor = BOARD_COLOR_IDS.includes(input.boardColor ?? "")
+				? (input.boardColor as string)
+				: "paper";
 			return {
 				title,
 				note: input.note?.trim() || null,
-				boardColor: input.boardColor || "paper",
+				boardColor,
 				paymentReference,
 			};
 		},
@@ -156,4 +160,32 @@ export const lockSpace = createServerFn({ method: "POST" })
 			})
 			.where(eq(signSpaces.id, space.id));
 		return { status: data.locked ? "locked" : "open" };
+	});
+
+export const setBoardColor = createServerFn({ method: "POST" })
+	.inputValidator((input: { slug: string; boardColor: string }) => {
+		if (!BOARD_COLOR_IDS.includes(input.boardColor)) {
+			throw new Error("Unknown board colour");
+		}
+		return input;
+	})
+	.handler(async ({ data }) => {
+		const [space] = await db
+			.select()
+			.from(signSpaces)
+			.where(eq(signSpaces.slug, data.slug))
+			.limit(1);
+		if (!space) throw new Error("Space not found");
+		const user = await getSessionUser();
+		const isHost =
+			getHostToken() === space.hostToken ||
+			(!!space.ownerId && user?.id === space.ownerId);
+		if (!isHost) {
+			throw new Error("Only the host can change the board colour");
+		}
+		await db
+			.update(signSpaces)
+			.set({ boardColor: data.boardColor, updatedAt: new Date().toISOString() })
+			.where(eq(signSpaces.id, space.id));
+		return { boardColor: data.boardColor };
 	});

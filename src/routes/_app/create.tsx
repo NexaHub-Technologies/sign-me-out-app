@@ -6,6 +6,7 @@ import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import { Label } from "#/components/ui/label.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
+import { BOARD_COLORS, boardColorById } from "#/lib/board-colors.ts";
 import { cn } from "#/lib/utils.ts";
 import { initSpacePayment } from "#/server/payments.ts";
 import { fetchSessionUser } from "#/server/session.ts";
@@ -21,13 +22,6 @@ export const Route = createFileRoute("/_app/create")({
 	},
 	component: CreatePage,
 });
-
-const boardColors = [
-	{ id: "paper", label: "Cotton white", swatch: "#fbfaf6" },
-	{ id: "green", label: "Naija green", swatch: "#1e9e5a" },
-	{ id: "blush", label: "Blush", swatch: "#f7d6e0" },
-	{ id: "ink", label: "Chalkboard", swatch: "#1b1b19" },
-];
 
 function CreatePage() {
 	const navigate = useNavigate();
@@ -125,31 +119,29 @@ function CreatePage() {
 				</div>
 
 				<fieldset className="flex flex-col gap-3">
-					<legend className="mb-3 text-sm font-medium text-ink">
+					<legend className="mb-1 text-sm font-medium text-ink">
 						Board colour
 					</legend>
-					<div className="flex flex-wrap gap-3">
-						{boardColors.map((c) => (
+					<div className="flex flex-wrap gap-2.5">
+						{BOARD_COLORS.map((c) => (
 							<button
 								key={c.id}
 								type="button"
 								onClick={() => setColor(c.id)}
-								className={cn(
-									"flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
-									color === c.id
-										? "border-marker-green bg-marker-green-deep/[0.06] text-ink"
-										: "border-line bg-card text-ink-soft hover:border-line-strong",
-								)}
+								title={c.label}
+								aria-label={c.label}
 								aria-pressed={color === c.id}
-							>
-								<span
-									className="size-5 rounded-full border border-line"
-									style={{ backgroundColor: c.swatch }}
-								/>
-								{c.label}
-							</button>
+								className={cn(
+									"size-9 rounded-full border transition-transform",
+									color === c.id
+										? "border-transparent ring-2 ring-marker-green ring-offset-2 ring-offset-paper"
+										: "border-line hover:scale-110",
+								)}
+								style={{ backgroundColor: c.bg }}
+							/>
 						))}
 					</div>
+					<p className="text-sm text-ink-soft">{boardColorById(color).label}</p>
 				</fieldset>
 
 				{error && (

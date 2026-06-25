@@ -24,6 +24,10 @@ create policy "profiles_select" on public.profiles
 
 -- No INSERT/UPDATE/DELETE policies: all writes happen server-side via Drizzle.
 
+-- payments is fully server-only (created/verified via Drizzle). RLS is enabled
+-- with NO policies, so anon/authenticated clients can neither read nor write it.
+alter table public.payments enable row level security;
+
 -- ---- Realtime: stream marks changes to subscribed clients ------------------
 do $$
 begin

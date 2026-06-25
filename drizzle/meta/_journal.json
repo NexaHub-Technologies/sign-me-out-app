@@ -15,6 +15,13 @@
       "when": 1782330465701,
       "tag": "0001_worried_slayback",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782406407096,
+      "tag": "0002_amusing_lorna_dane",
+      "breakpoints": true
     }
   ]
 }

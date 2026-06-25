@@ -9,6 +9,10 @@ import {
 	getHostToken,
 	getSessionUser,
 } from "#/server/auth.ts";
+import {
+	assertSpacePaymentPaid,
+	consumeSpacePayment,
+} from "#/server/payments.ts";
 
 function slugify(title: string) {
 	const base = title
@@ -22,19 +26,33 @@ function slugify(title: string) {
 
 export const createSpace = createServerFn({ method: "POST" })
 	.inputValidator(
-		(input: { title: string; note?: string; boardColor?: string }) => {
+		(input: {
+			title: string;
+			note?: string;
+			boardColor?: string;
+			paymentReference: string;
+		}) => {
 			const title = input.title?.trim();
 			if (!title) throw new Error("A space name is required");
+			const paymentReference = input.paymentReference?.trim();
+			if (!paymentReference) throw new Error("Payment is required");
 			return {
 				title,
 				note: input.note?.trim() || null,
 				boardColor: input.boardColor || "paper",
+				paymentReference,
 			};
 		},
 	)
 	.handler(async ({ data }) => {
-		const hostToken = ensureHostToken();
+		// Opening a space is gated on a paid Paystack transaction. The user must be
+		// signed in (we charge their account), and the reference must verify as a
+		// completed ₦1,000 payment that hasn't already been used for a space.
 		const user = await getSessionUser();
+		if (!user) throw new Error("Sign in to open a space");
+		await assertSpacePaymentPaid(data.paymentReference, user.id);
+
+		const hostToken = ensureHostToken();
 		const [space] = await db
 			.insert(signSpaces)
 			.values({
@@ -43,9 +61,11 @@ export const createSpace = createServerFn({ method: "POST" })
 				note: data.note,
 				boardColor: data.boardColor,
 				hostToken,
-				ownerId: user?.id ?? null,
+				ownerId: user.id,
 			})
-			.returning({ slug: signSpaces.slug });
+			.returning({ id: signSpaces.id, slug: signSpaces.slug });
+
+		await consumeSpacePayment(data.paymentReference, space.id);
 		return { slug: space.slug };
 	});
 

@@ -7,6 +7,7 @@ import {
 	real,
 	text,
 	timestamp,
+	uniqueIndex,
 	uuid,
 } from "drizzle-orm/pg-core";
 
@@ -93,6 +94,38 @@ export const marks = pgTable(
 			.on(table.spaceId)
 			.where(sql`${table.status} = 'visible'`),
 		index("marks_author_idx").on(table.authorId),
+	],
+).enableRLS();
+
+/**
+ * One row per space-creation payment (₦1,000 via Paystack). Created `pending`
+ * when checkout starts, flipped to `success` once verified, and consumed
+ * (spaceId set) when the paid-for space is created — a reference is single-use.
+ * Written only server-side via the Drizzle service connection.
+ */
+export const payments = pgTable(
+	"payments",
+	{
+		id: uuid().defaultRandom().primaryKey().notNull(),
+		reference: text().notNull(), // Paystack reference we generate (smo_…)
+		email: text().notNull(),
+		amount: integer().notNull(), // kobo; expected 100000 (₦1,000)
+		status: text().default("pending").notNull(), // 'pending' | 'success' | 'failed'
+		ownerId: uuid("owner_id"),
+		// Set when the payment is consumed by creating a space — null = unused.
+		spaceId: uuid("space_id").references(() => signSpaces.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		uniqueIndex("payments_reference_idx").on(table.reference),
+		index("payments_owner_idx").on(table.ownerId),
 	],
 ).enableRLS();
 

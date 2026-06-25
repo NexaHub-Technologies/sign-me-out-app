@@ -10,11 +10,16 @@ import { GoogleButton } from "#/features/auth/google-button.tsx";
 import { getSupabaseBrowserClient } from "#/lib/supabase.ts";
 
 export const Route = createFileRoute("/_auth/login")({
+	validateSearch: (search: Record<string, unknown>) => ({
+		next: typeof search.next === "string" ? search.next : undefined,
+	}),
 	component: LoginPage,
 });
 
 function LoginPage() {
 	const navigate = useNavigate();
+	const { next } = Route.useSearch();
+	const dest = next ?? "/dashboard";
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -32,14 +37,14 @@ function LoginPage() {
 			setError(error.message);
 			setBusy(false);
 		} else {
-			navigate({ to: "/dashboard" });
+			navigate({ to: dest });
 		}
 	}
 
 	async function onGoogle() {
 		setError(null);
 		setBusy(true);
-		const err = await signInWithGoogle("/dashboard");
+		const err = await signInWithGoogle(dest);
 		if (err) {
 			setError(err);
 			setBusy(false);

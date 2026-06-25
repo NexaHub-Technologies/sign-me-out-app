@@ -112,6 +112,18 @@ export const removeMark = createServerFn({ method: "POST" })
 		return { ok: true };
 	});
 
+/** Author or host may bring back a soft-deleted mark (undo of a removal). */
+export const restoreMark = createServerFn({ method: "POST" })
+	.inputValidator((input: { id: string }) => input)
+	.handler(async ({ data }) => {
+		await assertCanEdit(data.id);
+		await db
+			.update(marks)
+			.set({ status: "visible" })
+			.where(eq(marks.id, data.id));
+		return { ok: true };
+	});
+
 /**
  * Resolve a playable URL for a voice note — only for the host (cookie token or
  * account owner) or the recording's author. Voice files live in a private

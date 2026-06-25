@@ -1,26 +1,13 @@
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import {
-	Hand,
-	ImageIcon,
-	Mic,
-	Minus,
-	PenLine,
-	Plus,
-	Type,
-	ZoomIn,
-} from "lucide-react";
+import { Hand, Mic, Minus, PenLine, Plus, Type, ZoomIn } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Layer, Line, Stage, Transformer } from "react-konva";
 
 import { SignInDialog } from "#/features/auth/sign-in-dialog.tsx";
 import { useSessionUser } from "#/features/auth/use-session-user.ts";
 import { useMarksStore } from "#/features/canvas/marks-store.ts";
-import {
-	loadImageDims,
-	uploadMedia,
-	uploadVoice,
-} from "#/features/canvas/media.ts";
+import { uploadVoice } from "#/features/canvas/media.ts";
 import {
 	RenderMark,
 	type TransformPatch,
@@ -40,7 +27,6 @@ import { type AddMarkInput, addMark, updateMark } from "#/server/marks.ts";
 const TOOLS: { id: ToolId; label: string; icon: typeof PenLine }[] = [
 	{ id: "pen", label: "Pen", icon: PenLine },
 	{ id: "text", label: "Text", icon: Type },
-	{ id: "photo", label: "Photo", icon: ImageIcon },
 	{ id: "voice", label: "Voice note", icon: Mic },
 	{ id: "move", label: "Move", icon: Hand },
 	{ id: "zoom", label: "Zoom", icon: ZoomIn },
@@ -53,7 +39,6 @@ const MAX_SCALE = 4;
 const STROKE_SIZE = 9;
 const TEXT_FONT = 30;
 const TEXT_WIDTH = 260;
-const PHOTO_MAX = 280;
 const FONT_MIN = 14;
 const FONT_MAX = 96;
 
@@ -87,7 +72,6 @@ export default function SignCanvas({
 	const textWasOpenRef = useRef(false);
 	const textOpenedAtRef = useRef(0);
 	const trRef = useRef<Konva.Transformer>(null);
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const recorderRef = useRef<MediaRecorder | null>(null);
 	const chunksRef = useRef<Blob[]>([]);
 	const recordStartRef = useRef(0);
@@ -334,50 +318,6 @@ export default function SignCanvas({
 				color: colorHex,
 			},
 		);
-	}
-
-	// ---- photo -------------------------------------------------------------
-	function startPhoto() {
-		fileInputRef.current?.click();
-	}
-	async function onPhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
-		const file = e.target.files?.[0];
-		e.target.value = "";
-		if (!file) return;
-		const id = crypto.randomUUID();
-		const ext = file.name.split(".").pop() || "jpg";
-		try {
-			const url = await uploadMedia(space.id, id, file, ext, file.type);
-			const { w, h } = await loadImageDims(url);
-			const ratio = Math.min(PHOTO_MAX / w, PHOTO_MAX / h, 1);
-			const c = viewportCenter();
-			const width = Math.round(w * ratio);
-			const height = Math.round(h * ratio);
-			persist(
-				optimisticMark({
-					id,
-					kind: "photo",
-					x: c.x - width / 2,
-					y: c.y - height / 2,
-					mediaUrl: url,
-					width,
-					height,
-				}),
-				{
-					id,
-					spaceId: space.id,
-					kind: "photo",
-					x: c.x - width / 2,
-					y: c.y - height / 2,
-					mediaUrl: url,
-					width,
-					height,
-				},
-			);
-		} catch (err) {
-			setSaveError(err instanceof Error ? err.message : "Upload failed");
-			setTimeout(() => setSaveError(null), 3000);
-		}
 	}
 
 	// ---- voice -------------------------------------------------------------
@@ -655,14 +595,6 @@ export default function SignCanvas({
 				</div>
 			)}
 
-			<input
-				ref={fileInputRef}
-				type="file"
-				accept="image/*"
-				className="hidden"
-				onChange={onPhotoFile}
-			/>
-
 			<SignInDialog open={signInOpen} onClose={() => setSignInOpen(false)} />
 
 			<Dock
@@ -680,8 +612,7 @@ export default function SignCanvas({
 				onZoom={zoomBy}
 				onRequireAuth={() => setSignInOpen(true)}
 				onPick={(id) => {
-					if (id === "photo") startPhoto();
-					else if (id === "voice") toggleVoice();
+					if (id === "voice") toggleVoice();
 					else setTool(id);
 				}}
 			/>

@@ -1,6 +1,15 @@
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { Hand, Mic, Minus, PenLine, Plus, Type, ZoomIn } from "lucide-react";
+import {
+	Hand,
+	Mic,
+	Minus,
+	PenLine,
+	Plus,
+	Type,
+	Undo2,
+	ZoomIn,
+} from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Layer, Line, Stage, Transformer } from "react-konva";
 
@@ -22,7 +31,12 @@ import {
 } from "#/features/canvas/types.ts";
 import { useRealtimeMarks } from "#/features/canvas/use-realtime-marks.ts";
 import { cn } from "#/lib/utils.ts";
-import { type AddMarkInput, addMark, updateMark } from "#/server/marks.ts";
+import {
+	type AddMarkInput,
+	addMark,
+	removeMark,
+	updateMark,
+} from "#/server/marks.ts";
 
 const TOOLS: { id: ToolId; label: string; icon: typeof PenLine }[] = [
 	{ id: "pen", label: "Pen", icon: PenLine },
@@ -49,6 +63,12 @@ type TextDraft = {
 	screenX: number;
 	screenY: number;
 };
+type Transform = { x: number; y: number; rotation: number; scale: number };
+// One reversible step the current user took this session. "add" undoes by
+// removing the mark; "transform" undoes by restoring its prior placement.
+type UndoEntry =
+	| { id: string; kind: "add"; markId: string }
+	| { id: string; kind: "transform"; markId: string; before: Transform };
 
 export type SignCanvasProps = {
 	space: { id: string; slug: string; status: string };
@@ -75,6 +95,8 @@ export default function SignCanvas({
 	const recorderRef = useRef<MediaRecorder | null>(null);
 	const chunksRef = useRef<Blob[]>([]);
 	const recordStartRef = useRef(0);
+	// In-flight add saves, so undo can wait for the row to exist before deleting it.
+	const pendingRef = useRef<Map<string, Promise<unknown>>>(new Map());
 
 	const [size, setSize] = useState({ w: 0, h: 0 });
 	const [scale, setScale] = useState(1);
@@ -89,6 +111,7 @@ export default function SignCanvas({
 	const [textValue, setTextValue] = useState("");
 	const [fontSize, setFontSize] = useState(TEXT_FONT);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
 
 	const { user, ready } = useSessionUser();
 	const { marks, count, upsert, remove } = useMarksStore(initialMarks);
@@ -144,6 +167,19 @@ export default function SignCanvas({
 		setPos({ x: cx - worldX * next, y: cy - worldY * next });
 	}
 
+	function flashError(message: string) {
+		setSaveError(message);
+		setTimeout(() => setSaveError(null), 3000);
+	}
+
+	// ---- undo --------------------------------------------------------------
+	function pushUndo(entry: UndoEntry) {
+		setUndoStack((prev) => [...prev, entry]);
+	}
+	function dropUndoEntry(entryId: string) {
+		setUndoStack((prev) => prev.filter((e) => e.id !== entryId));
+	}
+
 	// ---- persistence -------------------------------------------------------
 	function optimisticMark(
 		over: Partial<Mark> & {
@@ -178,16 +214,18 @@ export default function SignCanvas({
 
 	function persist(mark: Mark, input: AddMarkInput) {
 		upsert(mark);
-		addMark({ data: input })
+		const entryId = crypto.randomUUID();
+		const save = addMark({ data: input })
 			.then((saved) => upsert(saved as Mark))
 			.catch((err: Error) => {
 				remove(mark.id);
+				dropUndoEntry(entryId); // nothing to undo if it never saved
 				if (err.message.includes("Sign in")) setSignInOpen(true);
-				else {
-					setSaveError(err.message);
-					setTimeout(() => setSaveError(null), 3000);
-				}
-			});
+				else flashError(err.message);
+			})
+			.finally(() => pendingRef.current.delete(mark.id));
+		pendingRef.current.set(mark.id, save);
+		pushUndo({ id: entryId, kind: "add", markId: mark.id });
 	}
 
 	// ---- pen ---------------------------------------------------------------
@@ -409,20 +447,26 @@ export default function SignCanvas({
 	) {
 		const m = marks.find((mk) => mk.id === id);
 		if (!m) return;
+		const before: Transform = {
+			x: m.x,
+			y: m.y,
+			rotation: m.rotation ?? 0,
+			scale: m.scale ?? 1,
+		};
 		const next = {
 			x: patch.x,
 			y: patch.y,
 			rotation: patch.rotation ?? m.rotation,
 			scale: patch.scale ?? m.scale,
 		};
+		const entryId = crypto.randomUUID();
 		upsert({ ...m, ...next });
+		pushUndo({ id: entryId, kind: "transform", markId: id, before });
 		updateMark({ data: { id, ...next } }).catch((err: Error) => {
 			upsert(m); // revert
+			dropUndoEntry(entryId); // the move never landed
 			if (err.message.includes("Sign in")) setSignInOpen(true);
-			else {
-				setSaveError(err.message);
-				setTimeout(() => setSaveError(null), 3000);
-			}
+			else flashError(err.message);
 		});
 	}
 	function onMarkDragEnd(id: string, x: number, y: number) {
@@ -431,6 +475,61 @@ export default function SignCanvas({
 	function onMarkTransformEnd(id: string, patch: TransformPatch) {
 		persistTransform(id, patch);
 	}
+
+	// Reverse the most recent step the user took this session. Adds are removed
+	// (author-gated server-side, which we satisfy); transforms are restored to
+	// their prior placement.
+	function undo() {
+		const entry = undoStack[undoStack.length - 1];
+		if (!entry) return;
+		setUndoStack((prev) => prev.slice(0, -1));
+		if (selectedId === entry.markId) setSelectedId(null);
+
+		if (entry.kind === "add") {
+			const snapshot = marks.find((mk) => mk.id === entry.markId);
+			remove(entry.markId);
+			// If the insert is still in flight, wait for it so the row exists, then
+			// soft-delete it. Restore locally if the server refuses.
+			const pending = pendingRef.current.get(entry.markId);
+			const run = pending
+				? pending.then(() => removeMark({ data: { id: entry.markId } }))
+				: removeMark({ data: { id: entry.markId } });
+			run.catch((err: Error) => {
+				if (snapshot) upsert(snapshot);
+				flashError(err.message);
+			});
+			return;
+		}
+
+		// transform: put the mark back where it was before the move/resize.
+		const m = marks.find((mk) => mk.id === entry.markId);
+		if (!m) return;
+		upsert({ ...m, ...entry.before });
+		updateMark({ data: { id: entry.markId, ...entry.before } }).catch(
+			(err: Error) => {
+				upsert(m); // couldn't undo — leave it where it was
+				flashError(err.message);
+			},
+		);
+	}
+
+	// Ctrl/Cmd+Z anywhere on the canvas. Bind once; call the latest `undo` via a
+	// ref so the listener doesn't churn on every render.
+	const undoRef = useRef(undo);
+	undoRef.current = undo;
+	useEffect(() => {
+		function onKey(e: KeyboardEvent) {
+			if (!(e.metaKey || e.ctrlKey) || e.shiftKey) return;
+			if (e.key.toLowerCase() !== "z") return;
+			// Let the browser handle undo inside the text box being typed in.
+			const tag = (e.target as HTMLElement | null)?.tagName;
+			if (tag === "TEXTAREA" || tag === "INPUT") return;
+			e.preventDefault();
+			undoRef.current();
+		}
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, []);
 
 	const isPanning = tool === "move";
 	const draft = draftRef.current;
@@ -610,6 +709,8 @@ export default function SignCanvas({
 				}
 				scale={scale}
 				onZoom={zoomBy}
+				canUndo={undoStack.length > 0}
+				onUndo={undo}
 				onRequireAuth={() => setSignInOpen(true)}
 				onPick={(id) => {
 					if (id === "voice") toggleVoice();
@@ -710,6 +811,8 @@ function Dock({
 	setFontSize,
 	scale,
 	onZoom,
+	canUndo,
+	onUndo,
 	onRequireAuth,
 	onPick,
 }: {
@@ -723,6 +826,8 @@ function Dock({
 	setFontSize: (n: number) => void;
 	scale: number;
 	onZoom: (factor: number) => void;
+	canUndo: boolean;
+	onUndo: () => void;
 	onRequireAuth: () => void;
 	onPick: (t: ToolId) => void;
 }) {
@@ -738,6 +843,17 @@ function Dock({
 	return (
 		<div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
 			<div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl border border-line bg-surface-strong p-1.5 shadow-lg backdrop-blur-md">
+				<button
+					type="button"
+					onClick={onUndo}
+					disabled={!canUndo}
+					title="Undo (Ctrl+Z)"
+					aria-label="Undo"
+					className="grid size-9 shrink-0 place-items-center rounded-xl text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent sm:size-10"
+				>
+					<Undo2 className="size-5" />
+				</button>
+				<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
 				{tool === "text" && (
 					<>
 						<span className="flex shrink-0 items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">

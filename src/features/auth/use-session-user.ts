@@ -32,13 +32,18 @@ export function useSessionUser() {
 			return;
 		}
 		const sb = getSupabaseBrowserClient();
-		sb.auth.getUser().then((res: { data: { user: unknown } }) => {
-			setUser(res.data.user ? toUser(res.data.user) : null);
-			setReady(true);
-		});
+		// Seed from the persisted session (read locally from the cookie, no network
+		// round-trip) so a returning user's signed-in state shows immediately.
+		sb.auth
+			.getSession()
+			.then((res: { data: { session: { user?: unknown } | null } }) => {
+				setUser(res.data.session?.user ? toUser(res.data.session.user) : null);
+				setReady(true);
+			});
 		const { data: sub } = sb.auth.onAuthStateChange(
 			(_event: unknown, session: { user?: unknown } | null) => {
 				setUser(session?.user ? toUser(session.user) : null);
+				setReady(true);
 			},
 		);
 		return () => sub.subscription.unsubscribe();

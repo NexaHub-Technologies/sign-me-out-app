@@ -20,6 +20,7 @@ import { Route as MarketingHowItWorksRouteImport } from './routes/_marketing/how
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppCustomizeRouteImport } from './routes/_app/customize'
 import { Route as AppCreateRouteImport } from './routes/_app/create'
 
 const MarketingRoute = MarketingRouteImport.update({
@@ -74,6 +75,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCustomizeRoute = AppCustomizeRouteImport.update({
+  id: '/customize',
+  path: '/customize',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCreateRoute = AppCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -83,6 +89,7 @@ const AppCreateRoute = AppCreateRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof MarketingIndexRoute
   '/create': typeof AppCreateRoute
+  '/customize': typeof AppCustomizeRoute
   '/dashboard': typeof AppDashboardRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof MarketingIndexRoute
   '/create': typeof AppCreateRoute
+  '/customize': typeof AppCustomizeRoute
   '/dashboard': typeof AppDashboardRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/_marketing': typeof MarketingRouteWithChildren
   '/_app/create': typeof AppCreateRoute
+  '/_app/customize': typeof AppCustomizeRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/create'
+    | '/customize'
     | '/dashboard'
     | '/login'
     | '/signup'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/create'
+    | '/customize'
     | '/dashboard'
     | '/login'
     | '/signup'
@@ -146,6 +157,7 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/_marketing'
     | '/_app/create'
+    | '/_app/customize'
     | '/_app/dashboard'
     | '/_auth/login'
     | '/_auth/signup'
@@ -243,6 +255,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/customize': {
+      id: '/_app/customize'
+      path: '/customize'
+      fullPath: '/customize'
+      preLoaderRoute: typeof AppCustomizeRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/create': {
       id: '/_app/create'
       path: '/create'
@@ -255,11 +274,13 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppCreateRoute: typeof AppCreateRoute
+  AppCustomizeRoute: typeof AppCustomizeRoute
   AppDashboardRoute: typeof AppDashboardRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppCreateRoute: AppCreateRoute,
+  AppCustomizeRoute: AppCustomizeRoute,
   AppDashboardRoute: AppDashboardRoute,
 }
 

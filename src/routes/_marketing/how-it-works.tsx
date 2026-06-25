@@ -19,7 +19,7 @@ const steps = [
 		n: "01",
 		icon: MousePointer2,
 		title: "Open your space",
-		body: "Sign up, name your sign-out, and pick a board colour. You get an infinite canvas built with real ink — pressure-sensitive pen, doodles, photos and voice notes.",
+		body: "Sign up, name your sign-out, and pick a board colour. You get an infinite canvas built with real ink — pressure-sensitive pen, doodles, well-wishes and voice notes.",
 	},
 	{
 		n: "02",
@@ -44,7 +44,7 @@ const steps = [
 const faqs = [
 	{
 		q: "Do people need an account to sign?",
-		a: "No. Anyone with your link can open the canvas and leave a signature, doodle, photo or voice note. Only you need an account to create and manage the space.",
+		a: "No. Anyone with your link can open the canvas and leave a signature, doodle or voice note. Only you need an account to create and manage the space.",
 	},
 	{
 		q: "How many people can sign?",

@@ -18,3 +18,10 @@ export async function signInWithGoogle(next: string): Promise<string | null> {
 	});
 	return error?.message ?? null;
 }
+
+/** Sign the current user out, clearing the session cookies. */
+export async function signOut(): Promise<string | null> {
+	const sb = getSupabaseBrowserClient();
+	const { error } = await sb.auth.signOut();
+	return error?.message ?? null;
+}

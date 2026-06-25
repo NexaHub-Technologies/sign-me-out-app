@@ -2,8 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	ArrowRight,
 	Check,
-	Heart,
-	ImageIcon,
 	Mic,
 	PenLine,
 	Play,
@@ -104,7 +102,6 @@ const boardScrawls = [
 const dockTools = [
 	{ icon: PenLine, label: "Pen", active: true },
 	{ icon: Type, label: "Text" },
-	{ icon: ImageIcon, label: "Photo" },
 	{ icon: Mic, label: "Voice" },
 ];
 
@@ -230,24 +227,6 @@ function HeroBoard() {
 							Ngozi
 						</span>
 					</div>
-
-					{/* a taped polaroid */}
-					<div
-						className="tape land-in absolute right-[7%] top-[46%] w-24 rotate-6 rounded-lg border border-line bg-white p-1.5 shadow-md"
-						style={
-							{
-								"--delay": "1550ms",
-								"--tape": "var(--marker-pink)",
-							} as CSSProperties
-						}
-					>
-						<div className="grid h-16 place-items-center rounded bg-gradient-to-br from-marker-amber/40 to-marker-pink/30">
-							<Heart className="size-5 text-marker-pink/80" />
-						</div>
-						<p className="scrawl mt-0.5 text-center text-sm text-ink-soft">
-							the squad
-						</p>
-					</div>
 				</div>
 
 				{/* tool dock */}
@@ -329,18 +308,16 @@ function Hero() {
 					>
 						<Sparkles className="size-3.5" /> For the class that finally made it
 					</Badge>
-					<h1 className="font-display mt-5 text-[2.9rem] font-extrabold leading-[1.0] text-ink sm:text-[4.2rem]">
-						Last paper, done.
-						<br />
-						Now get{" "}
+					<h1 className="font-display mt-5 text-[2.6rem] font-extrabold leading-[1.04] text-ink sm:text-[3.8rem]">
+						Your sign-out only happens once. Make it count with{" "}
 						<span className="marker-underline text-marker-green-deep">
-							signed out.
+							Sign Me Out.
 						</span>
 					</h1>
 					<p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
-						Open a sign-out canvas, share one link, and let coursemates,
-						classmates and loved ones leave signatures, doodles, photos and
-						voice notes. Then print it, save a PDF, or wear it.
+						Create your own sign-out space now — share one link and let
+						coursemates, classmates and loved ones leave signatures, doodles,
+						well-wishes and voice notes. Then print it, save a PDF, or wear it.
 					</p>
 
 					<div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
@@ -421,18 +398,11 @@ const leaveTypes = [
 		rot: -1,
 	},
 	{
-		icon: ImageIcon,
-		title: "Photos",
-		body: "Pin the lecture-hall selfies and squad shots right onto the board.",
-		color: "var(--marker-amber)",
-		rot: 1.5,
-	},
-	{
 		icon: Mic,
 		title: "Voice notes",
 		body: "Record a message they can play back forever. The ones that get you teary.",
-		color: "var(--marker-green-deep)",
-		rot: -1.5,
+		color: "var(--marker-amber)",
+		rot: 1.5,
 	},
 ];
 
@@ -590,21 +560,18 @@ function HowItWorks() {
 const garments = [
 	{
 		name: "Sign-out tee",
-		price: "₦12,000",
 		tag: "Bestseller",
 		shirt: "var(--marker-green-deep)",
 		rot: -2,
 	},
 	{
 		name: "Heavy hoodie",
-		price: "₦24,000",
 		tag: "Warm",
 		shirt: "var(--marker-pink)",
 		rot: 1.5,
 	},
 	{
 		name: "Crew sweatshirt",
-		price: "₦18,000",
 		tag: "Classic",
 		shirt: "var(--marker-blue)",
 		rot: -1.5,
@@ -694,12 +661,9 @@ function WearSection() {
 								</Badge>
 								<TeeMock color={g.shirt} />
 							</div>
-							<div className="flex items-center justify-between px-4 pb-4">
+							<div className="px-4 pb-4">
 								<span className="font-display font-bold text-ink">
 									{g.name}
-								</span>
-								<span className="text-sm font-semibold text-ink-soft">
-									{g.price}
 								</span>
 							</div>
 						</Card>
@@ -737,7 +701,7 @@ function ClosingBand() {
 				</span>
 				<div className="relative">
 					<h2 className="font-display mx-auto max-w-2xl text-3xl font-extrabold leading-tight sm:text-[3.2rem]">
-						Your sign-out only happens once. Make it count.
+						Create your own sign-out space now.
 					</h2>
 					<p className="mx-auto mt-4 max-w-lg text-lg text-white/85">
 						Open your canvas today and let everyone leave their mark.

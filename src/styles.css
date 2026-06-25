@@ -282,14 +282,42 @@ code {
 .marker-underline::after {
   content: '';
   position: absolute;
-  left: -2%;
-  right: -2%;
-  bottom: -0.12em;
-  height: 0.42em;
+  left: -3%;
+  right: -3%;
+  bottom: -0.1em;
+  height: 0.46em;
   background: var(--marker-green);
-  opacity: 0.28;
+  opacity: 0.3;
   border-radius: 0.4em;
-  transform: rotate(-1.4deg);
+  transform-origin: left center;
+  transform: rotate(-1.4deg) scaleX(0);
+  animation: sweep 560ms cubic-bezier(0.65, 0, 0.35, 1) 560ms both;
+  z-index: -1;
+}
+
+@keyframes sweep {
+  to {
+    transform: rotate(-1.4deg) scaleX(1);
+  }
+}
+
+/* a hand-marker highlight on any word, in any colour */
+.hl {
+  position: relative;
+  white-space: nowrap;
+}
+
+.hl::after {
+  content: '';
+  position: absolute;
+  left: -4%;
+  right: -4%;
+  bottom: 0.02em;
+  height: 0.5em;
+  background: var(--hl, var(--marker-amber));
+  opacity: 0.32;
+  border-radius: 0.4em;
+  transform: rotate(-1.6deg);
   z-index: -1;
 }
 
@@ -328,6 +356,137 @@ code {
   }
 }
 
+/* a signature lands on the board — staggered with --delay, tilted with --rot */
+.land-in {
+  animation: land-in 720ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes land-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) rotate(var(--rot, 0deg)) scale(0.5);
+    filter: blur(2px);
+  }
+  55% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--rot, 0deg)) scale(1);
+  }
+}
+
+/* a marker stroke that draws itself on — set --len to the path length */
+.draw-on {
+  stroke-dasharray: var(--len, 600);
+  stroke-dashoffset: var(--len, 600);
+  animation: draw-on 1100ms cubic-bezier(0.65, 0, 0.35, 1) both;
+  animation-delay: var(--delay, 300ms);
+}
+
+@keyframes draw-on {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* a strip of washi tape — for pinned photos and notes */
+.tape::before {
+  content: '';
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  width: 58px;
+  height: 22px;
+  transform: translateX(-50%) rotate(-3.5deg);
+  background: color-mix(in oklab, var(--tape, var(--marker-amber)) 42%, transparent);
+  border-left: 1px solid rgba(255, 255, 255, 0.4);
+  border-right: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 1px 3px rgba(27, 27, 25, 0.1);
+}
+
+/* pinned to a wall at a jaunty angle — straightens and lifts when you reach for it */
+.pin {
+  transform: rotate(var(--rot, 0deg));
+  transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 240ms ease;
+}
+
+.pin:hover {
+  transform: rotate(0deg) translateY(-5px) scale(1.02);
+}
+
+/* a sticker that wiggles when you poke it */
+.wiggle:hover {
+  animation: wiggle 520ms ease-in-out;
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(var(--rot, 0deg));
+  }
+  30% {
+    transform: rotate(calc(var(--rot, 0deg) - 5deg));
+  }
+  65% {
+    transform: rotate(calc(var(--rot, 0deg) + 4deg));
+  }
+}
+
+/* ambient drift for confetti / marker dots */
+.float {
+  animation: float var(--dur, 6s) ease-in-out infinite;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--rot, 0deg));
+  }
+  50% {
+    transform: translateY(-10px) rotate(calc(var(--rot, 0deg) + 6deg));
+  }
+}
+
+/* a live collaborator cursor drifting across the board */
+.cursor-drift {
+  animation: cursor-drift 9s ease-in-out infinite;
+}
+
+@keyframes cursor-drift {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(34px, -22px);
+  }
+  55% {
+    transform: translate(-18px, 16px);
+  }
+  80% {
+    transform: translate(20px, 24px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+/* the brand pill CTA gets a springy press */
+.pop {
+  transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 160ms ease;
+}
+
+.pop:hover {
+  transform: translateY(-2px);
+}
+
+.pop:active {
+  transform: translateY(0) scale(0.97);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -335,6 +494,9 @@ code {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+  .marker-underline::after {
+    transform: rotate(-1.4deg) scaleX(1);
   }
 }
 

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type CSSProperties, type FormEvent, useState } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
@@ -56,10 +56,19 @@ function SignupPage() {
 
 	return (
 		<div>
-			<h1 className="font-display text-3xl font-extrabold text-ink">
-				Create your space
+			<span className="inline-flex rotate-[-2deg] items-center rounded-full bg-marker-pink/10 px-3 py-1 text-xs font-bold text-marker-pink">
+				let's get you signed out 🎉
+			</span>
+			<h1 className="font-display mt-4 text-4xl font-extrabold text-ink">
+				Create your{" "}
+				<span
+					className="hl"
+					style={{ "--hl": "var(--marker-pink)" } as CSSProperties}
+				>
+					space
+				</span>
 			</h1>
-			<p className="mt-2 text-[15px] text-ink-soft">
+			<p className="mt-3 text-[15px] text-ink-soft">
 				Start free. You'll have a board ready in a minute.
 			</p>
 

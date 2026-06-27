@@ -123,12 +123,7 @@ function HowItWorksPage() {
 						Create your space <ArrowRight className="size-4" />
 					</Link>
 				</Button>
-				<Button asChild size="lg" variant="outline" className="rounded-full">
-					<Link to="/s/$spaceId" params={{ spaceId: "demo" }}>
-						Peek at a live space
-					</Link>
-				</Button>
+				</div>
 			</div>
-		</div>
 	);
 }

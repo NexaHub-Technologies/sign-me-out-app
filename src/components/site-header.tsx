@@ -32,14 +32,6 @@ export function SiteHeader() {
 							{item.label}
 						</Link>
 					))}
-					<Link
-						to="/s/$spaceId"
-						params={{ spaceId: "demo" }}
-						className="nav-link text-sm"
-						activeProps={{ className: "is-active" }}
-					>
-						See a space
-					</Link>
 				</nav>
 
 				<div className="hidden items-center gap-2 md:flex">
@@ -98,14 +90,6 @@ export function SiteHeader() {
 								{item.label}
 							</Link>
 						))}
-						<Link
-							to="/s/$spaceId"
-							params={{ spaceId: "demo" }}
-							className="rounded-lg px-3 py-2.5 font-semibold text-ink-soft hover:bg-ink/5"
-							onClick={() => setOpen(false)}
-						>
-							See a space
-						</Link>
 						<div className="mt-2 flex flex-col gap-2">
 							{ready && user ? (
 								<>

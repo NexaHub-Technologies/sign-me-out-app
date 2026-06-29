@@ -40,6 +40,7 @@
     "clsx": "^2.1.1",
     "drizzle-kit": "^0.31.9",
     "drizzle-orm": "^0.45.1",
+    "jspdf": "^4.2.1",
     "konva": "^10.3.0",
     "lucide-react": "^0.577.0",
     "nanoid": "^5.1.15",

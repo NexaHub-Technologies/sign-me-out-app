@@ -6,7 +6,6 @@ import {
 } from "@tanstack/react-router";
 import {
 	Check,
-	Download,
 	Link2,
 	Loader2,
 	Lock,
@@ -19,6 +18,9 @@ import { lazy, useEffect, useRef, useState } from "react";
 import { Logo } from "#/components/logo.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { ClientOnly } from "#/features/canvas/client-only.tsx";
+import { exportCanvas } from "#/features/canvas/export-canvas.ts";
+import { ExportPicker } from "#/features/canvas/export-picker.tsx";
+import type { SignCanvasHandle } from "#/features/canvas/sign-canvas.tsx";
 import { BOARD_COLORS, boardColorById } from "#/lib/board-colors.ts";
 import { cn } from "#/lib/utils.ts";
 import { getSpaceBySlug, lockSpace, setBoardColor } from "#/server/spaces.ts";
@@ -42,6 +44,7 @@ function SpacePage() {
 	const [copied, setCopied] = useState(false);
 	const [locking, setLocking] = useState(false);
 	const [boardColorId, setBoardColorId] = useState(space.boardColor);
+	const canvasRef = useRef<SignCanvasHandle>(null);
 	const locked = space.status === "locked";
 	const board = boardColorById(boardColorId);
 
@@ -130,10 +133,13 @@ function SpacePage() {
 							</span>
 						</Button>
 					)}
-					<Button variant="outline" size="sm" disabled>
-						<Download className="size-4" />
-						<span className="hidden sm:inline">Export</span>
-					</Button>
+					<ExportPicker
+						onExport={(format) => {
+							const stage = canvasRef.current?.getStage();
+							if (!stage) return;
+							exportCanvas(stage, format, space.slug || "sign-me-out");
+						}}
+					/>
 					<Button asChild size="sm">
 						<Link to="/wear">
 							<Shirt className="size-4" />
@@ -155,6 +161,7 @@ function SpacePage() {
 				<ClientOnly>
 					{() => (
 						<SignCanvas
+							ref={canvasRef}
 							space={{ id: space.id, slug: space.slug, status: space.status }}
 							initialMarks={marks}
 							isHost={isHost}

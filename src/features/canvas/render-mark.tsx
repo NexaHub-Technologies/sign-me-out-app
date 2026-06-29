@@ -226,7 +226,7 @@ function VoiceMark({
 	}
 
 	return (
-		<Group {...common}>
+		<Group {...common} name="voice-mark">
 			{/* author's name, above the recording */}
 			<Text
 				text={mark.authorName}

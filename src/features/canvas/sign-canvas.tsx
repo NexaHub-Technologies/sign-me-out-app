@@ -108,7 +108,7 @@ export default function SignCanvas({
 	const [size, setSize] = useState({ w: 0, h: 0 });
 	const [scale, setScale] = useState(1);
 	const [pos, setPos] = useState({ x: 0, y: 0 });
-	const [tool, setTool] = useState<ToolId>("pen");
+	const [tool, setTool] = useState<ToolId>("move");
 	const [colorId, setColorId] = useState<MarkerColorId>("green");
 	const [, tick] = useReducer((n: number) => n + 1, 0);
 	const [saveError, setSaveError] = useState<string | null>(null);

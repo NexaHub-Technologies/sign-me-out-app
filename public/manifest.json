@@ -3,7 +3,7 @@
   "name": "Sign Me Out",
   "icons": [
     {
-      "src": "favicon.svg",
+      "src": "logo.svg",
       "type": "image/svg+xml",
       "sizes": "any"
     },

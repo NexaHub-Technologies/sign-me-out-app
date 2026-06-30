@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "#/db/index.ts";
 import { marks, signSpaces } from "#/db/schema.ts";
-import { getHostToken, getSessionUser } from "#/server/auth.ts";
+import { getSessionUser, isSpaceHost } from "#/server/auth.ts";
 import { signVoiceUrl } from "#/server/storage.ts";
 
 export type StrokePoint = { x: number; y: number; pressure: number };
@@ -161,10 +161,7 @@ export const getVoiceUrl = createServerFn({ method: "POST" })
 				.from(signSpaces)
 				.where(eq(signSpaces.id, mark.spaceId))
 				.limit(1);
-			allowed =
-				!!space &&
-				(getHostToken() === space.hostToken ||
-					(!!space.ownerId && user?.id === space.ownerId));
+			allowed = !!space && isSpaceHost(space, user);
 		}
 		if (!allowed) {
 			throw new Error(
@@ -177,6 +174,11 @@ export const getVoiceUrl = createServerFn({ method: "POST" })
 		return { url: await signVoiceUrl(mark.mediaUrl) };
 	});
 
+/**
+ * Gate edits/moves/deletes: only the mark's author or the space host (cookie
+ * host or account owner) may proceed. This is the sole server-side enforcement
+ * point for mutating an existing mark, so UI gating need not be trusted.
+ */
 async function assertCanEdit(markId: string) {
 	const [mark] = await db
 		.select({ authorId: marks.authorId, spaceId: marks.spaceId })
@@ -186,14 +188,14 @@ async function assertCanEdit(markId: string) {
 	if (!mark) throw new Error("Mark not found");
 
 	const user = await getSessionUser();
-	if (user && mark.authorId === user.id) return;
+	if (user && mark.authorId === user.id) return; // the object's creator
 
 	const [space] = await db
-		.select({ hostToken: signSpaces.hostToken })
+		.select({ hostToken: signSpaces.hostToken, ownerId: signSpaces.ownerId })
 		.from(signSpaces)
 		.where(eq(signSpaces.id, mark.spaceId))
 		.limit(1);
-	if (space && getHostToken() === space.hostToken) return;
+	if (space && isSpaceHost(space, user)) return; // the space host
 
-	throw new Error("You can only edit your own marks");
+	throw new Error("Only the space host or the object's creator can do that");
 }

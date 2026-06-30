@@ -9,6 +9,7 @@ import {
 	ensureHostToken,
 	getHostToken,
 	getSessionUser,
+	isSpaceHost,
 } from "#/server/auth.ts";
 import {
 	assertSpacePaymentPaid,
@@ -128,9 +129,7 @@ export const getSpaceBySlug = createServerFn({ method: "GET" })
 			.orderBy(asc(marks.z), asc(marks.createdAt));
 
 		const user = await getSessionUser();
-		const isHost =
-			getHostToken() === space.hostToken ||
-			(!!space.ownerId && user?.id === space.ownerId);
+		const isHost = isSpaceHost(space, user);
 		// host_token is a secret — never ship it to the client.
 		const { hostToken: _omit, ...publicSpace } = space;
 		return { space: publicSpace, marks: items, isHost };
@@ -146,10 +145,7 @@ export const lockSpace = createServerFn({ method: "POST" })
 			.limit(1);
 		if (!space) throw new Error("Space not found");
 		const user = await getSessionUser();
-		const isHost =
-			getHostToken() === space.hostToken ||
-			(!!space.ownerId && user?.id === space.ownerId);
-		if (!isHost) {
+		if (!isSpaceHost(space, user)) {
 			throw new Error("Only the host can lock this space");
 		}
 		await db
@@ -177,10 +173,7 @@ export const setBoardColor = createServerFn({ method: "POST" })
 			.limit(1);
 		if (!space) throw new Error("Space not found");
 		const user = await getSessionUser();
-		const isHost =
-			getHostToken() === space.hostToken ||
-			(!!space.ownerId && user?.id === space.ownerId);
-		if (!isHost) {
+		if (!isSpaceHost(space, user)) {
 			throw new Error("Only the host can change the board colour");
 		}
 		await db

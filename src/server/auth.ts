@@ -62,6 +62,21 @@ export function getHostToken(): string | null {
 	return getCookie(HOST_COOKIE) ?? null;
 }
 
+/**
+ * Whether the current request is the host of a space — either the cookie-only
+ * host (matching host_token) or the signed-in account that owns it. This is the
+ * single source of truth for host checks; never compare host_token inline.
+ */
+export function isSpaceHost(
+	space: { hostToken: string | null; ownerId: string | null },
+	user: SessionUser | null,
+): boolean {
+	const token = getHostToken();
+	const cookieHost = token != null && token === space.hostToken;
+	const ownerHost = !!space.ownerId && !!user && user.id === space.ownerId;
+	return cookieHost || ownerHost;
+}
+
 /** Read the host token, creating + setting one if it doesn't exist yet. */
 export function ensureHostToken(): string {
 	const existing = getHostToken();

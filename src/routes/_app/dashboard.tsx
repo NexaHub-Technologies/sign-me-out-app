@@ -1,9 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Lock, PenLine, Plus, Users } from "lucide-react";
+import {
+	ArrowUpRight,
+	Lock,
+	Mic,
+	PenLine,
+	Plus,
+	Sparkles,
+	Type,
+	Users,
+} from "lucide-react";
 import type { CSSProperties } from "react";
 
+import { Badge } from "#/components/ui/badge.tsx";
 import { Button } from "#/components/ui/button.tsx";
-import { Card } from "#/components/ui/card.tsx";
+import { boardColorById } from "#/lib/board-colors.ts";
 import { cn } from "#/lib/utils.ts";
 import { listMySpaces } from "#/server/spaces.ts";
 
@@ -13,20 +23,34 @@ export const Route = createFileRoute("/_app/dashboard")({
 	component: DashboardPage,
 });
 
-// A few board accents to give the cards visual variety, cycled by position.
-const ACCENTS = [
-	"from-marker-green/35 to-marker-blue/20",
-	"from-marker-pink/35 to-marker-amber/20",
-	"from-marker-blue/35 to-marker-green/20",
-	"from-marker-amber/35 to-marker-pink/20",
-];
-
-// Each board gets its own little scrawl pair and tilt, cycled by position.
+// Each board gets a celebratory scrawl pair + tilt + marker accent, cycled by
+// position — the same hand-marker language as the marketing canvas.
 const BOARD_DOODLES = [
-	{ top: "we made it 🎓", bottom: "— the squad", rot: -1.6 },
-	{ top: "final year baddie ✨", bottom: "love, everyone", rot: 1.6 },
-	{ top: "to the moon 🚀", bottom: "— your people", rot: -1.2 },
-	{ top: "no more night class 🙏", bottom: "best of luck", rot: 1.2 },
+	{ top: "we made it 🎓", bottom: "— the squad" },
+	{ top: "final year baddie ✨", bottom: "love, everyone" },
+	{ top: "to the moon 🚀", bottom: "— your people" },
+	{ top: "no more night class 🙏", bottom: "best of luck" },
+];
+const ACCENTS = [
+	"var(--marker-green-deep)",
+	"var(--marker-pink)",
+	"var(--marker-blue)",
+	"var(--marker-amber)",
+];
+const ROTS = [-1.4, 1.3, -1.1, 1.2];
+
+// The mini tool dock + marker colours, echoing the in-app canvas.
+const DOCK_TOOLS = [
+	{ id: "pen", icon: PenLine, active: true },
+	{ id: "text", icon: Type, active: false },
+	{ id: "voice", icon: Mic, active: false },
+];
+const DOCK_COLORS = [
+	"var(--ink)",
+	"var(--marker-green-deep)",
+	"var(--marker-pink)",
+	"var(--marker-blue)",
+	"var(--marker-amber)",
 ];
 
 function timeAgo(iso: string): string {
@@ -41,114 +65,206 @@ function timeAgo(iso: string): string {
 	return new Date(iso).toLocaleDateString();
 }
 
-function DashboardPage() {
-	const spaces = Route.useLoaderData();
-	const totalMarks = spaces.reduce((n, s) => n + s.marks, 0);
+/* a tiny live "signing now" pulse, lifted from the marketing hero board */
+function LivePulse() {
+	return (
+		<span className="relative flex size-2.5">
+			<span className="absolute inline-flex size-full animate-ping rounded-full bg-marker-green opacity-70" />
+			<span className="relative inline-flex size-2.5 rounded-full bg-marker-green-deep" />
+		</span>
+	);
+}
+
+/* a scatter of marker sparkles drifting behind the header */
+const headerConfetti = [
+	{ cls: "left-[1%] top-[10%] text-marker-green", rot: -12, dur: 7, delay: 0 },
+	{
+		cls: "right-[24%] top-[2%] text-marker-pink",
+		rot: 8,
+		dur: 6,
+		delay: 500,
+	},
+	{
+		cls: "right-[2%] bottom-[8%] text-marker-amber",
+		rot: -6,
+		dur: 8,
+		delay: 250,
+	},
+];
+
+function HeaderConfetti() {
+	return (
+		<div className="pointer-events-none absolute inset-0 -z-10 hidden lg:block">
+			{headerConfetti.map((c) => (
+				<Sparkles
+					key={c.cls}
+					className={cn("float absolute size-5 opacity-40", c.cls)}
+					style={
+						{
+							"--rot": `${c.rot}deg`,
+							"--dur": `${c.dur}s`,
+							"--delay": `${c.delay}ms`,
+						} as CSSProperties
+					}
+				/>
+			))}
+		</div>
+	);
+}
+
+/* one space, framed as the same product-window board used on the landing page */
+function SpaceCard({
+	space,
+	index,
+}: {
+	space: ReturnType<typeof Route.useLoaderData>[number];
+	index: number;
+}) {
+	const board = boardColorById(space.boardColor);
+	const darkBoard = board.dot.includes("255,255,255");
+	const doodle = BOARD_DOODLES[index % BOARD_DOODLES.length];
+	const accent = ACCENTS[index % ACCENTS.length];
+	const rot = ROTS[index % ROTS.length];
+	const locked = space.status === "locked";
+	const inkOnBoard = darkBoard ? "rgba(255,255,255,0.92)" : accent;
 
 	return (
-		<div className="page-wrap py-12">
-			<div className="flex flex-wrap items-end justify-between gap-4">
-				<div className="relative">
-					<p className="kicker">Welcome back</p>
-					<h1 className="font-display mt-2 text-3xl font-extrabold text-ink sm:text-[2.6rem]">
-						Your sign-out{" "}
-						<span
-							className="hl"
-							style={{ "--hl": "var(--marker-green)" } as CSSProperties}
-						>
-							spaces
+		<Link
+			to="/s/$spaceId"
+			params={{ spaceId: space.slug }}
+			className="group block no-underline"
+		>
+			<article
+				className="pin overflow-hidden rounded-2xl border border-line bg-card shadow-[0_24px_48px_-28px_rgba(27,27,25,0.35)] transition-shadow group-hover:shadow-[0_30px_60px_-26px_rgba(27,27,25,0.4)]"
+				style={{ "--rot": `${rot}deg` } as CSSProperties}
+			>
+				{/* window chrome */}
+				<div className="flex items-center justify-between gap-2 border-b border-line bg-paper/70 px-4 py-2.5">
+					<div className="flex min-w-0 items-center gap-2.5">
+						{locked ? (
+							<Lock className="size-3.5 shrink-0 text-ink-faint" />
+						) : (
+							<LivePulse />
+						)}
+						<span className="font-display truncate text-sm font-bold text-ink">
+							{space.title}
 						</span>
-					</h1>
-					{spaces.length > 0 && (
-						<p className="mt-2 text-[15px] text-ink-soft">
-							<span className="font-semibold text-ink">{totalMarks}</span>{" "}
-							{totalMarks === 1 ? "mark" : "marks"} left across {spaces.length}{" "}
-							{spaces.length === 1 ? "board" : "boards"}.
-						</p>
-					)}
+					</div>
+					<ArrowUpRight className="size-5 shrink-0 text-ink-faint transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-marker-green-deep" />
 				</div>
-				<Button asChild className="pop rounded-full">
-					<Link to="/create">
-						<Plus className="size-4" /> New space
-					</Link>
-				</Button>
-			</div>
 
-			{spaces.length === 0 && (
-				<p className="mt-6 text-[15px] text-ink-soft">
-					You haven't opened a space yet. Create one and share the link to start
-					collecting signatures.
-				</p>
-			)}
+				{/* canvas preview — real board colour + sketch-grid dots */}
+				<div
+					className="relative h-40"
+					style={{
+						backgroundColor: board.bg,
+						backgroundImage: `radial-gradient(${board.dot} 1px, transparent 1.4px)`,
+						backgroundSize: "20px 20px",
+					}}
+				>
+					{/* a marker swoosh that sits behind the scrawls */}
+					<svg
+						className="pointer-events-none absolute inset-0 size-full"
+						viewBox="0 0 300 160"
+						fill="none"
+						aria-hidden="true"
+						preserveAspectRatio="none"
+					>
+						<path
+							d="M30 110c40 18 75-40 115-32s45 54 100 20"
+							stroke={accent}
+							strokeWidth="4"
+							strokeLinecap="round"
+							opacity={darkBoard ? 0.5 : 0.35}
+						/>
+					</svg>
 
-			<div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-				{spaces.map((s, i) => {
-					const doodle = BOARD_DOODLES[i % BOARD_DOODLES.length];
-					return (
-						<Link
-							key={s.id}
-							to="/s/$spaceId"
-							params={{ spaceId: s.slug }}
-							className="group block no-underline"
+					<span
+						className="scrawl absolute left-4 top-4 text-2xl"
+						style={{ color: inkOnBoard, transform: "rotate(-6deg)" }}
+					>
+						{doodle.top}
+					</span>
+					<span
+						className="scrawl absolute right-4 bottom-12 text-lg"
+						style={{
+							color: inkOnBoard,
+							opacity: 0.75,
+							transform: "rotate(3deg)",
+						}}
+					>
+						{doodle.bottom}
+					</span>
+
+					{locked && (
+						<span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-paper/85 px-2 py-1 text-xs font-medium text-ink-soft backdrop-blur">
+							<Lock className="size-3" /> Locked
+						</span>
+					)}
+
+					{/* stat chips read on any board colour */}
+					<div className="absolute bottom-3 left-4 flex items-center gap-2">
+						<span className="inline-flex items-center gap-1.5 rounded-full bg-paper/85 px-2.5 py-1 text-xs font-semibold text-ink shadow-sm backdrop-blur">
+							<PenLine className="size-3.5 text-marker-green-deep" />
+							{space.marks}
+						</span>
+						<span className="inline-flex items-center gap-1.5 rounded-full bg-paper/85 px-2.5 py-1 text-xs font-semibold text-ink shadow-sm backdrop-blur">
+							<Users className="size-3.5 text-marker-blue" />
+							{space.contributors}
+						</span>
+					</div>
+				</div>
+
+				{/* tool dock — the same shape as the canvas dock */}
+				<div className="flex items-center gap-1.5 border-t border-line bg-paper/70 px-4 py-2.5">
+					{DOCK_TOOLS.map((t) => (
+						<span
+							key={t.id}
+							className={cn(
+								"grid size-7 place-items-center rounded-lg",
+								t.active ? "bg-marker-green-deep text-white" : "text-ink-faint",
+							)}
 						>
-							<Card
-								className="feature-card pin overflow-hidden border-0 p-0 shadow-none"
-								style={{ "--rot": `${doodle.rot}deg` } as CSSProperties}
-							>
-								<div
-									className={cn(
-										"relative h-36 bg-gradient-to-br",
-										ACCENTS[i % ACCENTS.length],
-									)}
-								>
-									{/* dot grid so the card header reads as a real canvas */}
-									<div
-										className="pointer-events-none absolute inset-0 opacity-50"
-										style={{
-											backgroundImage:
-												"radial-gradient(var(--line) 1px, transparent 1.4px)",
-											backgroundSize: "18px 18px",
-										}}
-									/>
-									<span className="scrawl absolute left-4 top-4 rotate-[-6deg] text-2xl text-ink/55">
-										{doodle.top}
-									</span>
-									<span className="scrawl absolute right-4 bottom-3 rotate-3 text-xl text-ink/40">
-										{doodle.bottom}
-									</span>
-									{s.status === "locked" && (
-										<span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-paper/85 px-2 py-1 text-xs font-medium text-ink-soft backdrop-blur">
-											<Lock className="size-3" /> Locked
-										</span>
-									)}
-								</div>
-								<div className="p-5">
-									<div className="flex items-start justify-between">
-										<h2 className="font-display text-lg font-bold text-ink">
-											{s.title}
-										</h2>
-										<ArrowUpRight className="size-5 text-ink-faint transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-marker-green-deep" />
-									</div>
-									<div className="mt-3 flex items-center gap-4 text-sm text-ink-soft">
-										<span className="inline-flex items-center gap-1.5">
-											<PenLine className="size-4" /> {s.marks} signatures
-										</span>
-										<span className="inline-flex items-center gap-1.5">
-											<Users className="size-4" /> {s.contributors}
-										</span>
-									</div>
-									<p className="mt-2 text-xs text-ink-faint">
-										Updated {timeAgo(s.updatedAt)}
-									</p>
-								</div>
-							</Card>
-						</Link>
-					);
-				})}
+							<t.icon className="size-3.5" />
+						</span>
+					))}
+					<span className="ml-auto flex items-center gap-1.5">
+						{DOCK_COLORS.map((c) => (
+							<span
+								key={c}
+								className="size-3 rounded-full border border-white shadow-sm"
+								style={{ backgroundColor: c }}
+							/>
+						))}
+					</span>
+				</div>
 
-				<Link
-					to="/create"
-					className="group grid min-h-[232px] place-items-center rounded-xl border-2 border-dashed border-line-strong bg-card/40 text-center no-underline transition-colors hover:border-marker-green hover:bg-marker-green-deep/[0.05]"
+				<p className="border-t border-line bg-card px-4 py-2 text-xs text-ink-faint">
+					Updated {timeAgo(space.updatedAt)}
+				</p>
+			</article>
+		</Link>
+	);
+}
+
+/* the "open a new space" tile — a blank board waiting to be signed */
+function NewSpaceCard() {
+	return (
+		<Link to="/create" className="group block no-underline">
+			<article className="pin flex h-full min-h-[280px] flex-col overflow-hidden rounded-2xl border-2 border-dashed border-line-strong bg-card/40 transition-colors group-hover:border-marker-green group-hover:bg-marker-green-deep/[0.04]">
+				<div className="flex items-center gap-2.5 border-b border-dashed border-line-strong px-4 py-2.5">
+					<span className="size-2.5 rounded-full bg-line-strong" />
+					<span className="font-display text-sm font-bold text-ink-soft">
+						New board
+					</span>
+				</div>
+				<div
+					className="grid flex-1 place-items-center px-6 text-center"
+					style={{
+						backgroundImage:
+							"radial-gradient(var(--line) 1px, transparent 1.4px)",
+						backgroundSize: "20px 20px",
+					}}
 				>
 					<div>
 						<span className="pop mx-auto grid size-14 place-items-center rounded-full bg-marker-green-deep text-white shadow-md transition-transform group-hover:rotate-90">
@@ -158,11 +274,124 @@ function DashboardPage() {
 							Open a new space
 						</p>
 						<p className="mt-1 text-sm text-ink-soft">
-							Start collecting signatures
+							Name it, then share one link
 						</p>
 					</div>
-				</Link>
+				</div>
+			</article>
+		</Link>
+	);
+}
+
+/* shown when the user has no spaces yet — a single inviting blank board */
+function EmptyState() {
+	return (
+		<div className="mt-12 grid place-items-center">
+			<div
+				className="pin relative w-full max-w-xl overflow-hidden rounded-2xl border border-line bg-card shadow-[0_30px_60px_-30px_rgba(27,27,25,0.4)]"
+				style={{ "--rot": "-1.2deg" } as CSSProperties}
+			>
+				<div className="flex items-center gap-2.5 border-b border-line bg-paper/70 px-4 py-2.5">
+					<LivePulse />
+					<span className="font-display text-sm font-bold text-ink">
+						Your first board
+					</span>
+				</div>
+				<div
+					className="relative grid h-64 place-items-center px-6 text-center"
+					style={{
+						backgroundColor: "var(--paper)",
+						backgroundImage:
+							"radial-gradient(var(--line) 1px, transparent 1.4px)",
+						backgroundSize: "22px 22px",
+					}}
+				>
+					<span className="scrawl absolute left-6 top-6 rotate-[-8deg] text-2xl text-marker-pink">
+						sign right here ✍️
+					</span>
+					<span className="scrawl absolute bottom-6 right-8 rotate-6 text-xl text-marker-blue/70">
+						— the whole squad
+					</span>
+					<div>
+						<h2 className="font-display text-2xl font-extrabold text-ink">
+							No boards yet
+						</h2>
+						<p className="mx-auto mt-2 max-w-sm text-[15px] text-ink-soft">
+							Open your sign-out space, share the link, and watch the
+							signatures, doodles and voice notes roll in.
+						</p>
+						<Button asChild size="lg" className="pop mt-6 rounded-full">
+							<Link to="/create">
+								<Plus className="size-4" /> Open your space
+							</Link>
+						</Button>
+					</div>
+				</div>
 			</div>
+		</div>
+	);
+}
+
+function DashboardPage() {
+	const spaces = Route.useLoaderData();
+	const totalMarks = spaces.reduce((n, s) => n + s.marks, 0);
+
+	return (
+		<div className="page-wrap py-12">
+			<header className="relative">
+				<HeaderConfetti />
+				<div className="flex flex-wrap items-end justify-between gap-5">
+					<div className="rise-in">
+						<Badge
+							variant="outline"
+							className="gap-1.5 rounded-full border-line bg-card px-3 py-1 text-marker-green-deep"
+						>
+							<Sparkles className="size-3.5" /> Welcome back
+						</Badge>
+						<h1 className="font-display mt-4 text-3xl font-extrabold text-ink sm:text-[2.6rem]">
+							Your sign-out{" "}
+							<span
+								className="hl"
+								style={{ "--hl": "var(--marker-green)" } as CSSProperties}
+							>
+								spaces
+							</span>
+						</h1>
+						{spaces.length > 0 && (
+							<p className="mt-3 text-[15px] text-ink-soft">
+								<span className="font-semibold text-ink">{totalMarks}</span>{" "}
+								{totalMarks === 1 ? "mark" : "marks"} left across{" "}
+								<span className="font-semibold text-ink">{spaces.length}</span>{" "}
+								{spaces.length === 1 ? "board" : "boards"}.
+							</p>
+						)}
+					</div>
+
+					{spaces.length > 0 && (
+						<div className="relative">
+							<Button asChild className="pop rounded-full">
+								<Link to="/create">
+									<Plus className="size-4" /> New space
+								</Link>
+							</Button>
+							<span className="scrawl absolute -right-20 -top-6 hidden rotate-[-8deg] text-lg text-marker-pink lg:block">
+								one link, that's it!
+							</span>
+						</div>
+					)}
+				</div>
+			</header>
+
+			{spaces.length === 0 ? (
+				<EmptyState />
+			) : (
+				<div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+					{spaces.map((s, i) => (
+						<SpaceCard key={s.id} space={s} index={i} />
+					))}
+					<NewSpaceCard />
+				</div>
+			)}
 		</div>
 	);
 }

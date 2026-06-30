@@ -7,6 +7,7 @@ import {
 	PenLine,
 	Plus,
 	Redo2,
+	Trash2,
 	Type,
 	Undo2,
 	ZoomIn,
@@ -74,15 +75,20 @@ type TextDraft = {
 };
 type Transform = { x: number; y: number; rotation: number; scale: number };
 // One reversible step the current user took this session. "add" undoes by
-// removing the mark; "transform" undoes by restoring its prior placement.
+// removing the mark; "transform" undoes by restoring its prior placement;
+// "remove" undoes by restoring the deleted mark (snapshot carried so we can
+// re-add it locally).
 type UndoEntry =
 	| { id: string; kind: "add"; markId: string }
-	| { id: string; kind: "transform"; markId: string; before: Transform };
+	| { id: string; kind: "transform"; markId: string; before: Transform }
+	| { id: string; kind: "remove"; mark: Mark };
 // The inverse of an undone step, so it can be re-applied. "add" restores the
-// removed mark; "transform" re-applies the placement undo reverted.
+// removed mark; "transform" re-applies the placement undo reverted; "remove"
+// deletes the mark again.
 type RedoEntry =
 	| { id: string; kind: "add"; mark: Mark }
-	| { id: string; kind: "transform"; markId: string; after: Transform };
+	| { id: string; kind: "transform"; markId: string; after: Transform }
+	| { id: string; kind: "remove"; markId: string };
 
 export type SignCanvasProps = {
 	space: { id: string; slug: string; status: string };
@@ -503,6 +509,24 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 			persistTransform(id, patch);
 		}
 
+		// ---- delete (author/host, enforced server-side) ----------------------
+		// Soft-delete the mark and record it for undo. The realtime echo of the
+		// hidden-status update removes it for other viewers too.
+		function deleteMark(id: string) {
+			const snapshot = marks.find((mk) => mk.id === id);
+			if (!snapshot) return;
+			const entryId = crypto.randomUUID();
+			setSelectedId(null);
+			remove(id);
+			recordAction({ id: entryId, kind: "remove", mark: snapshot });
+			removeMark({ data: { id } }).catch((err: Error) => {
+				upsert(snapshot); // couldn't delete — put it back
+				dropUndoEntry(entryId);
+				if (err.message.includes("Sign in")) setSignInOpen(true);
+				else flashError(err.message);
+			});
+		}
+
 		function pushRedo(entry: RedoEntry) {
 			setRedoStack((prev) => [...prev, entry]);
 		}
@@ -514,7 +538,19 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 			const entry = undoStack[undoStack.length - 1];
 			if (!entry) return;
 			setUndoStack((prev) => prev.slice(0, -1));
-			if (selectedId === entry.markId) setSelectedId(null);
+			const affectedId = entry.kind === "remove" ? entry.mark.id : entry.markId;
+			if (selectedId === affectedId) setSelectedId(null);
+
+			if (entry.kind === "remove") {
+				// undo a delete: bring the mark back (flip status, don't re-insert).
+				upsert(entry.mark);
+				pushRedo({ id: entry.id, kind: "remove", markId: entry.mark.id });
+				restoreMark({ data: { id: entry.mark.id } }).catch((err: Error) => {
+					remove(entry.mark.id);
+					flashError(err.message);
+				});
+				return;
+			}
 
 			if (entry.kind === "add") {
 				const snapshot = marks.find((mk) => mk.id === entry.markId);
@@ -567,6 +603,20 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 			if (!entry) return;
 			setRedoStack((prev) => prev.slice(0, -1));
 
+			if (entry.kind === "remove") {
+				// redo a delete: soft-delete the mark again.
+				const snapshot = marks.find((mk) => mk.id === entry.markId);
+				if (!snapshot) return;
+				if (selectedId === entry.markId) setSelectedId(null);
+				remove(entry.markId);
+				pushUndoBack({ id: entry.id, kind: "remove", mark: snapshot });
+				removeMark({ data: { id: entry.markId } }).catch((err: Error) => {
+					upsert(snapshot);
+					flashError(err.message);
+				});
+				return;
+			}
+
 			if (entry.kind === "add") {
 				// Bring the soft-deleted mark back (flip status, don't re-insert).
 				upsert(entry.mark);
@@ -609,16 +659,26 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		undoRef.current = undo;
 		const redoRef = useRef(redo);
 		redoRef.current = redo;
+		const deleteRef = useRef(deleteSelected);
+		deleteRef.current = deleteSelected;
 		useEffect(() => {
 			function onKey(e: KeyboardEvent) {
+				// Never hijack keys while typing in the text box.
+				const tag = (e.target as HTMLElement | null)?.tagName;
+				const typing = tag === "TEXTAREA" || tag === "INPUT";
+				// Delete / Backspace removes the selected object.
+				if (!typing && (e.key === "Delete" || e.key === "Backspace")) {
+					e.preventDefault(); // also stops Backspace from navigating back
+					deleteRef.current();
+					return;
+				}
 				if (!(e.metaKey || e.ctrlKey)) return;
 				const key = e.key.toLowerCase();
 				const isRedo = (key === "z" && e.shiftKey) || key === "y";
 				const isUndo = key === "z" && !e.shiftKey;
 				if (!isUndo && !isRedo) return;
 				// Let the browser handle undo/redo inside the text box being typed in.
-				const tag = (e.target as HTMLElement | null)?.tagName;
-				if (tag === "TEXTAREA" || tag === "INPUT") return;
+				if (typing) return;
 				e.preventDefault();
 				if (isRedo) redoRef.current();
 				else undoRef.current();
@@ -626,6 +686,20 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 			window.addEventListener("keydown", onKey);
 			return () => window.removeEventListener("keydown", onKey);
 		}, []);
+
+		// A selected mark can be deleted by its author or the host (server enforces
+		// this too). Host may delete any object, for moderation.
+		const selectedMark = selectedId
+			? marks.find((m) => m.id === selectedId)
+			: undefined;
+		const canDelete =
+			!!selectedMark &&
+			tool === "move" &&
+			(isHost ||
+				(selectedMark.authorId != null && selectedMark.authorId === user?.id));
+		function deleteSelected() {
+			if (canDelete && selectedId) deleteMark(selectedId);
+		}
 
 		const isPanning = tool === "move";
 		const draft = draftRef.current;
@@ -809,6 +883,8 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 					onUndo={undo}
 					canRedo={redoStack.length > 0}
 					onRedo={redo}
+					canDelete={canDelete}
+					onDelete={deleteSelected}
 					onRequireAuth={() => setSignInOpen(true)}
 					onPick={(id) => {
 						if (id === "voice") toggleVoice();
@@ -916,6 +992,8 @@ function Dock({
 	onUndo,
 	canRedo,
 	onRedo,
+	canDelete,
+	onDelete,
 	onRequireAuth,
 	onPick,
 }: {
@@ -933,6 +1011,8 @@ function Dock({
 	onUndo: () => void;
 	canRedo: boolean;
 	onRedo: () => void;
+	canDelete: boolean;
+	onDelete: () => void;
 	onRequireAuth: () => void;
 	onPick: (t: ToolId) => void;
 }) {
@@ -1074,6 +1154,21 @@ function Dock({
 						/>
 					</button>
 				))}
+
+				{canDelete && (
+					<>
+						<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
+						<button
+							type="button"
+							onClick={onDelete}
+							title="Delete selected"
+							aria-label="Delete selected"
+							className="grid size-9 shrink-0 place-items-center rounded-xl text-marker-pink transition-colors hover:bg-marker-pink/10 sm:size-10"
+						>
+							<Trash2 className="size-5" />
+						</button>
+					</>
+				)}
 			</div>
 		</div>
 	);

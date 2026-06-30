@@ -126,7 +126,6 @@ function SpaceCard({
 	const accent = ACCENTS[index % ACCENTS.length];
 	const rot = ROTS[index % ROTS.length];
 	const locked = space.status === "locked";
-	const inkOnBoard = darkBoard ? "rgba(255,255,255,0.92)" : accent;
 
 	return (
 		<Link
@@ -138,19 +137,29 @@ function SpaceCard({
 				className="pin overflow-hidden rounded-2xl border border-line bg-card shadow-[0_24px_48px_-28px_rgba(27,27,25,0.35)] transition-shadow group-hover:shadow-[0_30px_60px_-26px_rgba(27,27,25,0.4)]"
 				style={{ "--rot": `${rot}deg` } as CSSProperties}
 			>
-				{/* window chrome */}
-				<div className="flex items-center justify-between gap-2 border-b border-line bg-paper/70 px-4 py-2.5">
-					<div className="flex min-w-0 items-center gap-2.5">
+				{/* window chrome — title with its hand-marker scribble underneath */}
+				<div className="flex items-start justify-between gap-2 border-b border-line bg-paper/70 px-4 py-2.5">
+					<div className="flex min-w-0 items-start gap-2.5">
 						{locked ? (
-							<Lock className="size-3.5 shrink-0 text-ink-faint" />
+							<Lock className="mt-1 size-3.5 shrink-0 text-ink-faint" />
 						) : (
-							<LivePulse />
+							<span className="mt-1 shrink-0">
+								<LivePulse />
+							</span>
 						)}
-						<span className="font-display truncate text-sm font-bold text-ink">
-							{space.title}
-						</span>
+						<div className="min-w-0">
+							<span className="font-display block truncate text-sm font-bold text-ink">
+								{space.title}
+							</span>
+							<span
+								className="scrawl block truncate text-base leading-tight"
+								style={{ color: accent }}
+							>
+								{doodle.top}
+							</span>
+						</div>
 					</div>
-					<ArrowUpRight className="size-5 shrink-0 text-ink-faint transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-marker-green-deep" />
+					<ArrowUpRight className="mt-0.5 size-5 shrink-0 text-ink-faint transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-marker-green-deep" />
 				</div>
 
 				{/* canvas preview — real board colour + sketch-grid dots */}
@@ -178,23 +187,6 @@ function SpaceCard({
 							opacity={darkBoard ? 0.5 : 0.35}
 						/>
 					</svg>
-
-					<span
-						className="scrawl absolute left-4 top-4 text-2xl"
-						style={{ color: inkOnBoard, transform: "rotate(-6deg)" }}
-					>
-						{doodle.top}
-					</span>
-					<span
-						className="scrawl absolute right-4 bottom-12 text-lg"
-						style={{
-							color: inkOnBoard,
-							opacity: 0.75,
-							transform: "rotate(3deg)",
-						}}
-					>
-						{doodle.bottom}
-					</span>
 
 					{locked && (
 						<span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-paper/85 px-2 py-1 text-xs font-medium text-ink-soft backdrop-blur">

@@ -10,9 +10,12 @@ import { GoogleButton } from "#/features/auth/google-button.tsx";
 import { getSupabaseBrowserClient } from "#/lib/supabase.ts";
 
 export const Route = createFileRoute("/_auth/login")({
-	validateSearch: (search: Record<string, unknown>) => ({
-		next: typeof search.next === "string" ? search.next : undefined,
-	}),
+	// `next` is optional — return it only when present so it stays an optional
+	// search param (otherwise every <Link to="/login"> would be forced to pass it).
+	validateSearch: (search: Record<string, unknown>): { next?: string } => {
+		const next = typeof search.next === "string" ? search.next : undefined;
+		return next ? { next } : {};
+	},
 	component: LoginPage,
 });
 

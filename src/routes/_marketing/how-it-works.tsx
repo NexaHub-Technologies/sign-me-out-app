@@ -123,7 +123,7 @@ function HowItWorksPage() {
 						Create your space <ArrowRight className="size-4" />
 					</Link>
 				</Button>
-				</div>
 			</div>
+		</div>
 	);
 }

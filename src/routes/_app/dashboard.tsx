@@ -23,14 +23,8 @@ export const Route = createFileRoute("/_app/dashboard")({
 	component: DashboardPage,
 });
 
-// Each board gets a celebratory scrawl pair + tilt + marker accent, cycled by
-// position — the same hand-marker language as the marketing canvas.
-const BOARD_DOODLES = [
-	{ top: "we made it 🎓", bottom: "— the squad" },
-	{ top: "final year baddie ✨", bottom: "love, everyone" },
-	{ top: "to the moon 🚀", bottom: "— your people" },
-	{ top: "no more night class 🙏", bottom: "best of luck" },
-];
+// Each board gets a tilt + marker accent, cycled by position, so the grid keeps
+// the hand-marker feel without inventing placeholder text.
 const ACCENTS = [
 	"var(--marker-green-deep)",
 	"var(--marker-pink)",
@@ -122,10 +116,11 @@ function SpaceCard({
 }) {
 	const board = boardColorById(space.boardColor);
 	const darkBoard = board.dot.includes("255,255,255");
-	const doodle = BOARD_DOODLES[index % BOARD_DOODLES.length];
 	const accent = ACCENTS[index % ACCENTS.length];
 	const rot = ROTS[index % ROTS.length];
 	const locked = space.status === "locked";
+	// The space name reads as a marker scrawl on the board — white on dark boards.
+	const nameColor = darkBoard ? "rgba(255,255,255,0.92)" : accent;
 
 	return (
 		<Link
@@ -137,32 +132,18 @@ function SpaceCard({
 				className="pin overflow-hidden rounded-2xl border border-line bg-card shadow-[0_24px_48px_-28px_rgba(27,27,25,0.35)] transition-shadow group-hover:shadow-[0_30px_60px_-26px_rgba(27,27,25,0.4)]"
 				style={{ "--rot": `${rot}deg` } as CSSProperties}
 			>
-				{/* window chrome — title with its hand-marker scribble underneath */}
-				<div className="flex items-start justify-between gap-2 border-b border-line bg-paper/70 px-4 py-2.5">
-					<div className="flex min-w-0 items-start gap-2.5">
-						{locked ? (
-							<Lock className="mt-1 size-3.5 shrink-0 text-ink-faint" />
-						) : (
-							<span className="mt-1 shrink-0">
-								<LivePulse />
-							</span>
-						)}
-						<div className="min-w-0">
-							<span className="font-display block truncate text-sm font-bold text-ink">
-								{space.title}
-							</span>
-							<span
-								className="scrawl block truncate text-base leading-tight"
-								style={{ color: accent }}
-							>
-								{doodle.top}
-							</span>
-						</div>
-					</div>
-					<ArrowUpRight className="mt-0.5 size-5 shrink-0 text-ink-faint transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-marker-green-deep" />
+				{/* window chrome — status dot + open affordance */}
+				<div className="flex items-center justify-between gap-2 border-b border-line bg-paper/70 px-4 py-2.5">
+					{locked ? (
+						<Lock className="size-3.5 text-ink-faint" />
+					) : (
+						<LivePulse />
+					)}
+					<ArrowUpRight className="size-5 text-ink-faint transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-marker-green-deep" />
 				</div>
 
-				{/* canvas preview — real board colour + sketch-grid dots */}
+				{/* canvas preview — real board colour + sketch-grid dots; the space
+				    name is hand-written on the board like a real scrawl */}
 				<div
 					className="relative h-40"
 					style={{
@@ -171,7 +152,7 @@ function SpaceCard({
 						backgroundSize: "20px 20px",
 					}}
 				>
-					{/* a marker swoosh that sits behind the scrawls */}
+					{/* a marker swoosh that sits behind the name */}
 					<svg
 						className="pointer-events-none absolute inset-0 size-full"
 						viewBox="0 0 300 160"
@@ -188,11 +169,12 @@ function SpaceCard({
 						/>
 					</svg>
 
-					{locked && (
-						<span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-paper/85 px-2 py-1 text-xs font-medium text-ink-soft backdrop-blur">
-							<Lock className="size-3" /> Locked
-						</span>
-					)}
+					<span
+						className="scrawl absolute left-4 right-4 top-5 line-clamp-2 text-3xl leading-tight"
+						style={{ color: nameColor, transform: "rotate(-3deg)" }}
+					>
+						{space.title}
+					</span>
 
 					{/* stat chips read on any board colour */}
 					<div className="absolute bottom-3 left-4 flex items-center gap-2">

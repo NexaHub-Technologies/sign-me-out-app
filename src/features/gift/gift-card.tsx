@@ -42,7 +42,11 @@ export function GiftCard({
 	isHost: boolean;
 }) {
 	const [gift, setGift] = useState<GiftValue | null>(() => toGift(initialGift));
-	const [open, setOpen] = useState(true);
+	// Start collapsed on phones so the card doesn't cover the "Signing as…" chip;
+	// expanded on wider screens where there's room beside it.
+	const [open, setOpen] = useState(
+		() => typeof window === "undefined" || window.innerWidth >= 640,
+	);
 	const [editing, setEditing] = useState(false);
 
 	// No gift and not the host → nothing to show.

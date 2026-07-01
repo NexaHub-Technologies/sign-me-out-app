@@ -134,13 +134,15 @@ function SpacePage() {
 							</span>
 						</Button>
 					)}
-					<ExportPicker
-						onExport={(format) => {
-							const stage = canvasRef.current?.getStage();
-							if (!stage) return;
-							exportCanvas(stage, format, space.slug || "sign-me-out");
-						}}
-					/>
+					{isHost && (
+						<ExportPicker
+							onExport={(format) => {
+								const stage = canvasRef.current?.getStage();
+								if (!stage) return;
+								exportCanvas(stage, format, space.slug || "sign-me-out");
+							}}
+						/>
+					)}
 					<Button asChild size="sm">
 						<Link to="/wear">
 							<Shirt className="size-4" />

@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { db } from "#/db/index.ts";
 import { marks, signSpaces } from "#/db/schema.ts";
 import { BOARD_COLOR_IDS } from "#/lib/board-colors.ts";
+import { type GiftInput, normalizeGift } from "#/lib/gift.ts";
 import {
 	ensureHostToken,
 	getHostToken,
@@ -32,6 +33,7 @@ export const createSpace = createServerFn({ method: "POST" })
 			title: string;
 			note?: string;
 			boardColor?: string;
+			gift?: GiftInput;
 			paymentReference: string;
 		}) => {
 			const title = input.title?.trim();
@@ -45,6 +47,7 @@ export const createSpace = createServerFn({ method: "POST" })
 				title,
 				note: input.note?.trim() || null,
 				boardColor,
+				gift: normalizeGift(input.gift ?? {}),
 				paymentReference,
 			};
 		},
@@ -65,6 +68,9 @@ export const createSpace = createServerFn({ method: "POST" })
 				title: data.title,
 				note: data.note,
 				boardColor: data.boardColor,
+				giftBankName: data.gift?.bankName ?? null,
+				giftAccountNumber: data.gift?.accountNumber ?? null,
+				giftAccountName: data.gift?.accountName ?? null,
 				hostToken,
 				ownerId: user.id,
 			})
@@ -181,4 +187,41 @@ export const setBoardColor = createServerFn({ method: "POST" })
 			.set({ boardColor: data.boardColor, updatedAt: new Date().toISOString() })
 			.where(eq(signSpaces.id, space.id));
 		return { boardColor: data.boardColor };
+	});
+
+/**
+ * Host-only: attach, change, or remove the cash-gift account shown on the
+ * canvas. An empty/partial gift clears it (see normalizeGift). Returns the
+ * stored gift (or nulls) so the client can update in place.
+ */
+export const setSpaceGift = createServerFn({ method: "POST" })
+	.inputValidator((input: { slug: string; gift: GiftInput }) => ({
+		slug: input.slug,
+		gift: normalizeGift(input.gift ?? {}),
+	}))
+	.handler(async ({ data }) => {
+		const [space] = await db
+			.select()
+			.from(signSpaces)
+			.where(eq(signSpaces.slug, data.slug))
+			.limit(1);
+		if (!space) throw new Error("Space not found");
+		const user = await getSessionUser();
+		if (!isSpaceHost(space, user)) {
+			throw new Error("Only the host can change the gift");
+		}
+		await db
+			.update(signSpaces)
+			.set({
+				giftBankName: data.gift?.bankName ?? null,
+				giftAccountNumber: data.gift?.accountNumber ?? null,
+				giftAccountName: data.gift?.accountName ?? null,
+				updatedAt: new Date().toISOString(),
+			})
+			.where(eq(signSpaces.id, space.id));
+		return {
+			giftBankName: data.gift?.bankName ?? null,
+			giftAccountNumber: data.gift?.accountNumber ?? null,
+			giftAccountName: data.gift?.accountName ?? null,
+		};
 	});

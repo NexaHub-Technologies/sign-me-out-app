@@ -1,12 +1,18 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Loader2, Lock } from "lucide-react";
+import { ArrowRight, Gift, Loader2, Lock } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
+import {
+	EMPTY_GIFT,
+	GiftFields,
+	type GiftFormValue,
+} from "#/components/gift-fields.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import { Label } from "#/components/ui/label.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { BOARD_COLORS, boardColorById } from "#/lib/board-colors.ts";
+import { normalizeGift } from "#/lib/gift.ts";
 import { cn } from "#/lib/utils.ts";
 import { initSpacePayment } from "#/server/payments.ts";
 import { fetchSessionUser } from "#/server/session.ts";
@@ -26,6 +32,8 @@ export const Route = createFileRoute("/_app/create")({
 function CreatePage() {
 	const navigate = useNavigate();
 	const [color, setColor] = useState("paper");
+	const [giftOpen, setGiftOpen] = useState(false);
+	const [gift, setGift] = useState<GiftFormValue>(EMPTY_GIFT);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +45,15 @@ function CreatePage() {
 		const note = String(form.get("note") ?? "");
 		if (!title) {
 			setError("A space name is required");
+			return;
+		}
+		// Validate the optional gift up front (before charging) so a malformed
+		// account never blocks between payment and space creation.
+		let giftInput: GiftFormValue | null;
+		try {
+			giftInput = giftOpen ? normalizeGift(gift) : null;
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Check the gift details");
 			return;
 		}
 		setSubmitting(true);
@@ -57,6 +74,7 @@ function CreatePage() {
 								title,
 								note,
 								boardColor: color,
+								gift: giftInput ?? undefined,
 								paymentReference: reference,
 							},
 						});
@@ -143,6 +161,40 @@ function CreatePage() {
 					</div>
 					<p className="text-sm text-ink-soft">{boardColorById(color).label}</p>
 				</fieldset>
+
+				<div className="rounded-2xl border border-line bg-card/60 p-4">
+					<button
+						type="button"
+						onClick={() => setGiftOpen((v) => !v)}
+						aria-expanded={giftOpen}
+						className="flex w-full items-start gap-3 text-left"
+					>
+						<span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-marker-green/10 text-marker-green-deep">
+							<Gift className="size-5" />
+						</span>
+						<span className="min-w-0 flex-1">
+							<span className="block font-medium text-ink">
+								Add a cash gift{" "}
+								<span className="text-ink-faint">(optional)</span>
+							</span>
+							<span className="mt-0.5 block text-sm text-ink-soft">
+								Show a bank account on the canvas so friends can send you money.
+							</span>
+						</span>
+						<span className="mt-1 text-sm font-semibold text-marker-green-deep">
+							{giftOpen ? "Remove" : "Add"}
+						</span>
+					</button>
+
+					{giftOpen && (
+						<div className="mt-5 border-t border-line pt-5">
+							<GiftFields value={gift} onChange={setGift} />
+							<p className="mt-3 text-xs text-ink-faint">
+								Anyone who opens your space can see and copy these details.
+							</p>
+						</div>
+					)}
+				</div>
 
 				{error && (
 					<p className="text-sm font-medium text-destructive">{error}</p>

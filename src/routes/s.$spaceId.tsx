@@ -21,6 +21,7 @@ import { ClientOnly } from "#/features/canvas/client-only.tsx";
 import { exportCanvas } from "#/features/canvas/export-canvas.ts";
 import { ExportPicker } from "#/features/canvas/export-picker.tsx";
 import type { SignCanvasHandle } from "#/features/canvas/sign-canvas.tsx";
+import { GiftCard } from "#/features/gift/gift-card.tsx";
 import { BOARD_COLORS, boardColorById } from "#/lib/board-colors.ts";
 import { cn } from "#/lib/utils.ts";
 import { getSpaceBySlug, lockSpace, setBoardColor } from "#/server/spaces.ts";
@@ -168,6 +169,16 @@ function SpacePage() {
 						/>
 					)}
 				</ClientOnly>
+
+				<GiftCard
+					slug={space.slug}
+					gift={{
+						bankName: space.giftBankName,
+						accountNumber: space.giftAccountNumber,
+						accountName: space.giftAccountName,
+					}}
+					isHost={isHost}
+				/>
 			</div>
 		</div>
 	);

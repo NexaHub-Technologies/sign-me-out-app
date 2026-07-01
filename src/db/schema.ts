@@ -23,6 +23,11 @@ export const signSpaces = pgTable(
 		title: text().notNull(),
 		note: text(),
 		boardColor: text("board_color").default("paper").notNull(),
+		// Optional "sign with a gift" — a bank account signers can copy to send a
+		// cash gift. All three are set together or all null (see lib/gift.ts).
+		giftBankName: text("gift_bank_name"),
+		giftAccountNumber: text("gift_account_number"),
+		giftAccountName: text("gift_account_name"),
 		hostToken: uuid("host_token").notNull(),
 		// The authenticated creator, when signed in — lets a host see their spaces
 		// across devices. Null for spaces created by a cookie-only (anonymous) host.

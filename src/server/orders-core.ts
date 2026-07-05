@@ -1,8 +1,12 @@
+import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { Resend } from "resend";
 
+import { db } from "#/db/index.ts";
+import { merchOrders } from "#/db/schema.ts";
 import {
 	COLOURS,
+	formatPrice,
 	MAX_QTY,
 	PRODUCTS,
 	type Product,
@@ -221,4 +225,145 @@ function confirmationHtml(order: ValidOrder, reference: string): string {
 		`Your order <strong>${reference}</strong> is with us. We'll reply with the price and delivery details before anything is charged — nothing to pay yet.`,
 		detailsTable(order),
 	);
+}
+
+// ---------------------------------------------------------------------------
+// Merchandise orders (paid via Paystack)
+// ---------------------------------------------------------------------------
+
+type MerchOrderRow = typeof merchOrders.$inferSelect;
+
+function merchOrderRows(
+	order: MerchOrderRow,
+	product: Product,
+): [string, string][] {
+	const colour = COLOURS.find((c) => c.id === order.colourId);
+	return [
+		["Item", product.name],
+		...(product.sizes && order.size
+			? [["Size", order.size] as [string, string]]
+			: []),
+		["Colour", colour?.label ?? order.colourId],
+		["Quantity", String(order.qty)],
+		["Personalisation", order.personalisation || "—"],
+		["Sign-out board", order.boardRef || "—"],
+		["Name", order.name],
+		["Email", order.email],
+		["Phone / WhatsApp", order.phone],
+		["Address", order.address],
+		["Notes", order.notes || "—"],
+		["Amount paid", formatPrice(order.amount)],
+	];
+}
+
+function merchDetailsTable(order: MerchOrderRow, product: Product): string {
+	const rows = merchOrderRows(order, product)
+		.map(
+			([label, value]) =>
+				`<tr>
+				<td style="padding:8px 16px 8px 0;font-size:13px;color:#8a887f;vertical-align:top;white-space:nowrap;">${label}</td>
+				<td style="padding:8px 0;font-size:14px;font-weight:600;">${escapeHtml(value)}</td>
+			</tr>`,
+		)
+		.join("");
+	return `<table role="presentation" style="margin-top:20px;width:100%;border-top:1px solid #e4e1d6;border-collapse:collapse;">${rows}</table>`;
+}
+
+function merchInboxHtml(
+	order: MerchOrderRow,
+	product: Product,
+	reference: string,
+): string {
+	return emailShell(
+		`New merch order ${reference}`,
+		`${escapeHtml(order.name)} placed a paid merchandise order from the customise page. Reply to this email to reach them directly.`,
+		merchDetailsTable(order, product),
+	);
+}
+
+function merchConfirmationHtml(
+	order: MerchOrderRow,
+	product: Product,
+	reference: string,
+): string {
+	return emailShell(
+		`Order confirmed, ${escapeHtml(order.name.split(" ")[0])}!`,
+		`Your order <strong>${reference}</strong> has been confirmed and paid. We'll start processing it right away.`,
+		merchDetailsTable(order, product),
+	);
+}
+
+/**
+ * Read a paid merchandise order from the DB and send fulfilment + confirmation
+ * emails. The order must already have `status = 'paid'` (set by
+ * `assertMerchPaymentPaid`). Safe to call more than once — emails use
+ * idempotency keys.
+ */
+export async function deliverMerchOrderEmails(
+	reference: string,
+): Promise<{ reference: string; confirmationSent: boolean }> {
+	const [order] = await db
+		.select()
+		.from(merchOrders)
+		.where(eq(merchOrders.reference, reference))
+		.limit(1);
+	if (!order) throw new Error("Order not found");
+	if (order.status !== "paid") throw new Error("Order has not been paid yet");
+
+	const product = PRODUCTS.find((p) => p.id === order.productId);
+	if (!product) throw new Error("Unknown product in order");
+
+	const resend = resendClient();
+
+	const { error: inboxError } = await resend.emails.send(
+		{
+			from: FROM,
+			to: [ORDER_INBOX],
+			replyTo: order.email,
+			subject: `New merch order ${reference} — ${product.name} (x${order.qty})`,
+			html: merchInboxHtml(order, product, reference),
+			text: merchOrderText(order, product, reference),
+		},
+		{ idempotencyKey: `merch-inbox/${reference}` },
+	);
+	if (inboxError) {
+		console.error("Merch order inbox email failed:", inboxError.message);
+		throw new Error(
+			"We couldn't send your order just now — please try again in a moment.",
+		);
+	}
+
+	const { error: confirmError } = await resend.emails.send(
+		{
+			from: FROM,
+			to: [order.email],
+			replyTo: ORDER_INBOX,
+			subject: `Order confirmed ${reference} — Sign Me Out`,
+			html: merchConfirmationHtml(order, product, reference),
+			text: `Thanks ${order.name}!\n\nYour order has been confirmed and paid. We'll start processing it right away.\n\n${merchOrderText(order, product, reference)}`,
+		},
+		{ idempotencyKey: `merch-confirmation/${reference}` },
+	);
+	if (confirmError) {
+		console.error(
+			"Merch order confirmation email failed:",
+			confirmError.message,
+		);
+	}
+
+	return { reference, confirmationSent: !confirmError };
+}
+
+function merchOrderText(
+	order: MerchOrderRow,
+	product: Product,
+	reference: string,
+): string {
+	return [
+		`Merch order ${reference}`,
+		"",
+		...merchOrderRows(order, product).map(
+			([label, value]) => `${label}: ${value}`,
+		),
+	].join("\n");
 }

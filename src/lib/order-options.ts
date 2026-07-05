@@ -9,19 +9,60 @@ export type Product = {
 	name: string;
 	group: "Wear" | "Souvenirs";
 	sizes: boolean;
+	priceKobo: number;
 };
 
 export const PRODUCTS: Product[] = [
-	{ id: "tee", name: "Sign-out tee", group: "Wear", sizes: true },
-	{ id: "hoodie", name: "Heavy hoodie", group: "Wear", sizes: true },
-	{ id: "sweatshirt", name: "Crew sweatshirt", group: "Wear", sizes: true },
-	{ id: "tote", name: "Tote bag", group: "Wear", sizes: false },
-	{ id: "cap", name: "Cap", group: "Wear", sizes: false },
-	{ id: "framed", name: "Framed print", group: "Wear", sizes: false },
-	{ id: "mug", name: "Mug", group: "Souvenirs", sizes: false },
-	{ id: "cup", name: "Travel cup", group: "Souvenirs", sizes: false },
-	{ id: "wristband", name: "Wristband", group: "Souvenirs", sizes: false },
-	{ id: "keychain", name: "Key chain", group: "Souvenirs", sizes: false },
+	{
+		id: "tee",
+		name: "Sign-out tee",
+		group: "Wear",
+		sizes: true,
+		priceKobo: 1_200_000,
+	},
+	{
+		id: "hoodie",
+		name: "Heavy hoodie",
+		group: "Wear",
+		sizes: true,
+		priceKobo: 2_000_000,
+	},
+	{
+		id: "sweatshirt",
+		name: "Crew sweatshirt",
+		group: "Wear",
+		sizes: true,
+		priceKobo: 1_200_000,
+	},
+	{
+		id: "tote",
+		name: "Tote bag",
+		group: "Wear",
+		sizes: false,
+		priceKobo: 1_000_000,
+	},
+	{ id: "cap", name: "Cap", group: "Wear", sizes: false, priceKobo: 800_000 },
+	{
+		id: "framed",
+		name: "Framed print",
+		group: "Wear",
+		sizes: false,
+		priceKobo: 3_700_000,
+	},
+	{
+		id: "mug",
+		name: "Mug",
+		group: "Souvenirs",
+		sizes: false,
+		priceKobo: 800_000,
+	},
+	{
+		id: "cup",
+		name: "Travel cup",
+		group: "Souvenirs",
+		sizes: false,
+		priceKobo: 800_000,
+	},
 ];
 
 export const COLOURS = [
@@ -36,3 +77,7 @@ export const COLOURS = [
 export const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
 export const MAX_QTY = 500;
+
+export function formatPrice(kobo: number): string {
+	return `₦${(kobo / 100).toLocaleString("en-NG")}`;
+}

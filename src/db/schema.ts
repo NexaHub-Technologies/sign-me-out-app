@@ -134,6 +134,43 @@ export const payments = pgTable(
 	],
 ).enableRLS();
 
+/**
+ * One row per merchandise order. Created `pending` when the Paystack checkout
+ * starts, flipped to `paid` once verified, and used to trigger fulfilment
+ * emails. The reference is unique and ties the payment to the order.
+ */
+export const merchOrders = pgTable(
+	"merch_orders",
+	{
+		id: uuid().defaultRandom().primaryKey().notNull(),
+		reference: text().notNull(),
+		productId: text("product_id").notNull(),
+		size: text(),
+		colourId: text("colour_id").notNull(),
+		qty: integer().notNull(),
+		personalisation: text(),
+		boardRef: text("board_ref"),
+		name: text().notNull(),
+		email: text().notNull(),
+		phone: text().notNull(),
+		address: text().notNull(),
+		notes: text(),
+		amount: integer().notNull(), // total in kobo
+		status: text().default("pending").notNull(), // 'pending' | 'paid' | 'failed'
+		ownerId: uuid("owner_id").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		uniqueIndex("merch_orders_reference_idx").on(table.reference),
+		index("merch_orders_owner_idx").on(table.ownerId),
+	],
+).enableRLS();
+
 /** Signer profile, mirrored from auth.users via a trigger (see init-policies.sql). */
 export const profiles = pgTable("profiles", {
 	id: uuid().primaryKey().notNull(),

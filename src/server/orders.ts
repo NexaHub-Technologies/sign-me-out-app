@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 
-import { deliverOrderEmails, type OrderInput } from "#/server/orders-core.ts";
+import {
+	deliverMerchOrderEmails,
+	deliverOrderEmails,
+	type OrderInput,
+} from "#/server/orders-core.ts";
 
 /**
  * Send a customise-page order by email (Resend): the order to our fulfilment
@@ -10,3 +14,11 @@ import { deliverOrderEmails, type OrderInput } from "#/server/orders-core.ts";
 export const placeOrder = createServerFn({ method: "POST" })
 	.inputValidator((input: OrderInput) => input)
 	.handler(async ({ data }) => deliverOrderEmails(data));
+
+/**
+ * Confirm a paid merchandise order: sends the fulfilment email and buyer
+ * confirmation. Called after Paystack payment is verified.
+ */
+export const confirmMerchOrder = createServerFn({ method: "POST" })
+	.validator((data: { reference: string }) => data)
+	.handler(async ({ data }) => deliverMerchOrderEmails(data.reference));

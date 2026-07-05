@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, ChevronDown, Loader2, Mail, Package } from "lucide-react";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { Check, ChevronDown, Loader2, Lock, Package } from "lucide-react";
 import { type CSSProperties, useEffect, useState } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
@@ -7,13 +7,27 @@ import { Input } from "#/components/ui/input.tsx";
 import { Label } from "#/components/ui/label.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { useSessionUser } from "#/features/auth/use-session-user.ts";
-import { COLOURS, MAX_QTY, PRODUCTS, SIZES } from "#/lib/order-options.ts";
+import {
+	COLOURS,
+	formatPrice,
+	MAX_QTY,
+	PRODUCTS,
+	SIZES,
+} from "#/lib/order-options.ts";
 import { cn } from "#/lib/utils.ts";
-import { placeOrder } from "#/server/orders.ts";
+import { confirmMerchOrder } from "#/server/orders.ts";
+import { initMerchPayment } from "#/server/payments.ts";
+import { fetchSessionUser } from "#/server/session.ts";
 import { listMySpaces } from "#/server/spaces.ts";
 
 export const Route = createFileRoute("/_app/customize")({
 	ssr: false,
+	beforeLoad: async () => {
+		const user = await fetchSessionUser();
+		if (!user) {
+			throw redirect({ to: "/login", search: { next: "/customize" } });
+		}
+	},
 	loader: async () => listMySpaces(),
 	component: CustomizePage,
 });
@@ -50,6 +64,7 @@ function CustomizePage() {
 	const product = PRODUCTS.find((p) => p.id === productId) ?? PRODUCTS[0];
 	const colour = COLOURS.find((c) => c.id === colourId) ?? COLOURS[0];
 	const board = spaces.find((s) => s.slug === boardSlug);
+	const totalKobo = product.priceKobo * qty;
 
 	async function submitOrder() {
 		if (!board) {
@@ -68,30 +83,54 @@ function CustomizePage() {
 		}
 		setError(null);
 		setSubmitting(true);
+
 		try {
-			const result = await placeOrder({
+			// 1. Start the Paystack transaction server-side (amount calculated from product price × qty).
+			const { accessCode, reference } = await initMerchPayment({
 				data: {
 					productId,
-					size,
-					colourId,
 					qty,
+					size: product.sizes ? size : "",
+					colourId,
 					personalisation,
 					boardRef: `${board.title} (${window.location.origin}/s/${board.slug})`,
-					name,
-					email,
-					phone,
-					address,
-					notes,
+					name: name.trim(),
+					email: email.trim(),
+					phone: phone.trim(),
+					address: address.trim(),
+					notes: notes.trim(),
 				},
 			});
-			setPlaced(result);
+
+			// 2. Open the Paystack popup. Imported lazily so SSR never touches it.
+			const { default: PaystackPop } = await import("@paystack/inline-js");
+			const popup = new PaystackPop();
+			popup.resumeTransaction(accessCode, {
+				// 3. Payment confirmed — verify server-side, then send emails.
+				onSuccess: async () => {
+					try {
+						await confirmMerchOrder({ data: { reference } });
+						setPlaced({ reference, confirmationSent: true });
+					} catch (err) {
+						setError(
+							err instanceof Error
+								? err.message
+								: "Payment went through but we couldn't confirm your order — please contact support.",
+						);
+						setSubmitting(false);
+					}
+				},
+				onCancel: () => {
+					setError("Payment cancelled — your order wasn't placed.");
+					setSubmitting(false);
+				},
+				onError: (err: { message?: string }) => {
+					setError(err?.message || "Payment failed. Please try again.");
+					setSubmitting(false);
+				},
+			});
 		} catch (err) {
-			setError(
-				err instanceof Error
-					? err.message
-					: "We couldn't send your order just now — please try again.",
-			);
-		} finally {
+			setError(err instanceof Error ? err.message : "Could not start payment");
 			setSubmitting(false);
 		}
 	}
@@ -111,9 +150,8 @@ function CustomizePage() {
 				</span>
 			</h1>
 			<p className="mt-3 max-w-2xl text-lg text-ink-soft">
-				Pick a piece, choose your options, and we'll send it your way. Placing
-				an order sends it straight to our print team, and we'll email you a
-				confirmation.
+				Pick a piece, choose your options, and we'll send it your way. Pay
+				securely via Paystack and we'll email you a confirmation.
 			</p>
 
 			<div className="mt-10 grid gap-8 lg:grid-cols-[1.5fr_0.9fr]">
@@ -141,6 +179,9 @@ function CustomizePage() {
 											)}
 										>
 											{p.name}
+											<span className="ml-1.5 text-xs text-ink-faint">
+												{formatPrice(p.priceKobo)}
+											</span>
 										</button>
 									))}
 								</div>
@@ -372,6 +413,12 @@ function CustomizePage() {
 									</dd>
 								</div>
 							)}
+							<div className="mt-2 flex justify-between gap-4 border-t border-line pt-3">
+								<dt className="font-semibold text-ink">Total</dt>
+								<dd className="text-right text-lg font-bold text-ink">
+									{formatPrice(totalKobo)}
+								</dd>
+							</div>
 						</dl>
 
 						{error && (
@@ -383,14 +430,14 @@ function CustomizePage() {
 						{placed ? (
 							<div className="mt-5 rounded-2xl bg-marker-green-deep/[0.07] p-4">
 								<p className="flex items-center gap-2 font-semibold text-marker-green-deep">
-									<Check className="size-4" /> Order sent
+									<Check className="size-4" /> Order confirmed
 								</p>
 								<p className="mt-1 text-sm text-ink-soft">
-									Your order <strong>{placed.reference}</strong> is with our
-									print team.{" "}
+									Your order <strong>{placed.reference}</strong> has been paid
+									and confirmed. We'll start processing it right away.{" "}
 									{placed.confirmationSent
 										? `We've emailed a confirmation to ${email.trim()}.`
-										: "We couldn't email your confirmation, but the order went through — we'll reach you on the details you gave."}
+										: "We couldn't email your confirmation, but the order is confirmed — we'll reach you on the details you gave."}
 								</p>
 							</div>
 						) : (
@@ -403,18 +450,18 @@ function CustomizePage() {
 							>
 								{submitting ? (
 									<>
-										<Loader2 className="size-4 animate-spin" /> Sending order…
+										<Loader2 className="size-4 animate-spin" /> Processing…
 									</>
 								) : (
 									<>
-										<Mail className="size-4" /> Place order
+										Pay {formatPrice(totalKobo)}
+										<Lock className="size-3.5" />
 									</>
 								)}
 							</Button>
 						)}
 						<p className="mt-3 text-center text-xs text-ink-faint">
-							We'll confirm price and delivery by email before anything is
-							charged.
+							Secure payment by Paystack. Your order is confirmed instantly.
 						</p>
 					</div>
 				</div>

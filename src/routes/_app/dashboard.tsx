@@ -1,21 +1,25 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import {
 	ArrowUpRight,
+	Loader2,
 	Lock,
 	Mic,
 	PenLine,
 	Plus,
 	Sparkles,
+	Trash2,
 	Type,
 	Users,
 } from "lucide-react";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 
 import { Badge } from "#/components/ui/badge.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { boardColorById } from "#/lib/board-colors.ts";
 import { cn } from "#/lib/utils.ts";
-import { listMySpaces } from "#/server/spaces.ts";
+import { deleteSpace, listMySpaces } from "#/server/spaces.ts";
+
+type DashboardSpace = ReturnType<typeof Route.useLoaderData>[number];
 
 export const Route = createFileRoute("/_app/dashboard")({
 	ssr: false,
@@ -110,9 +114,11 @@ function HeaderConfetti() {
 function SpaceCard({
 	space,
 	index,
+	onRequestDelete,
 }: {
-	space: ReturnType<typeof Route.useLoaderData>[number];
+	space: DashboardSpace;
 	index: number;
+	onRequestDelete: (space: DashboardSpace) => void;
 }) {
 	const board = boardColorById(space.boardColor);
 	const darkBoard = board.dot.includes("255,255,255");
@@ -132,14 +138,30 @@ function SpaceCard({
 				className="pin overflow-hidden rounded-2xl border border-line bg-card shadow-[0_24px_48px_-28px_rgba(27,27,25,0.35)] transition-shadow group-hover:shadow-[0_30px_60px_-26px_rgba(27,27,25,0.4)]"
 				style={{ "--rot": `${rot}deg` } as CSSProperties}
 			>
-				{/* window chrome — status dot + open affordance */}
+				{/* window chrome — status dot + delete + open affordance */}
 				<div className="flex items-center justify-between gap-2 border-b border-line bg-paper/70 px-4 py-2.5">
 					{locked ? (
 						<Lock className="size-3.5 text-ink-faint" />
 					) : (
 						<LivePulse />
 					)}
-					<ArrowUpRight className="size-5 text-ink-faint transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-marker-blue-deep" />
+					<div className="flex items-center gap-1.5">
+						<button
+							type="button"
+							onClick={(e) => {
+								// The whole card is a <Link>; keep the click from navigating.
+								e.preventDefault();
+								e.stopPropagation();
+								onRequestDelete(space);
+							}}
+							className="grid size-7 place-items-center rounded-lg text-ink-faint opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+							title="Delete space"
+							aria-label={`Delete ${space.title}`}
+						>
+							<Trash2 className="size-4" />
+						</button>
+						<ArrowUpRight className="size-5 text-ink-faint transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-marker-blue-deep" />
+					</div>
 				</div>
 
 				{/* canvas preview — real board colour + sketch-grid dots; the space
@@ -306,9 +328,125 @@ function EmptyState() {
 	);
 }
 
+/* confirmation before a permanent delete — the space name and mark count spelled
+   out so nobody nukes the wrong board */
+function DeleteSpaceDialog({
+	space,
+	busy,
+	error,
+	onCancel,
+	onConfirm,
+}: {
+	space: DashboardSpace;
+	busy: boolean;
+	error: string | null;
+	onCancel: () => void;
+	onConfirm: () => void;
+}) {
+	// Close on Escape (unless a delete is in flight).
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape" && !busy) onCancel();
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [busy, onCancel]);
+
+	return (
+		<div className="fixed inset-0 z-50 grid place-items-center p-4">
+			{/* click-outside-to-close backdrop; Escape does the same via the effect */}
+			<button
+				type="button"
+				aria-label="Close"
+				className="absolute inset-0 cursor-default bg-ink/40 backdrop-blur-sm"
+				onClick={() => !busy && onCancel()}
+			/>
+			<div
+				className="pin relative w-full max-w-md rounded-2xl border border-line bg-card p-6 shadow-[0_30px_60px_-24px_rgba(27,27,25,0.5)]"
+				style={{ "--rot": "-0.5deg" } as CSSProperties}
+				role="alertdialog"
+				aria-modal="true"
+				aria-labelledby="delete-space-title"
+			>
+				<div className="grid size-11 place-items-center rounded-full bg-destructive/10 text-destructive">
+					<Trash2 className="size-5" />
+				</div>
+				<h2
+					id="delete-space-title"
+					className="font-display mt-4 text-xl font-extrabold text-ink"
+				>
+					Delete this space?
+				</h2>
+				<p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
+					<span className="font-semibold text-ink">“{space.title}”</span> and
+					all <span className="font-semibold text-ink">{space.marks}</span>{" "}
+					{space.marks === 1 ? "mark" : "marks"} on it — signatures, doodles and
+					voice notes — will be gone for good. This can’t be undone.
+				</p>
+
+				{error && (
+					<p className="mt-4 text-sm font-medium text-destructive">{error}</p>
+				)}
+
+				<div className="mt-6 flex justify-end gap-3">
+					<Button
+						variant="outline"
+						className="rounded-full"
+						onClick={onCancel}
+						disabled={busy}
+					>
+						Keep it
+					</Button>
+					<Button
+						variant="destructive"
+						className="rounded-full"
+						onClick={onConfirm}
+						disabled={busy}
+					>
+						{busy ? (
+							<Loader2 className="size-4 animate-spin" />
+						) : (
+							<>
+								<Trash2 className="size-4" /> Delete forever
+							</>
+						)}
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
 function DashboardPage() {
 	const spaces = Route.useLoaderData();
+	const router = useRouter();
 	const totalMarks = spaces.reduce((n, s) => n + s.marks, 0);
+
+	const [confirming, setConfirming] = useState<DashboardSpace | null>(null);
+	const [busy, setBusy] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	async function doDelete() {
+		if (!confirming) return;
+		setBusy(true);
+		setError(null);
+		try {
+			await deleteSpace({ data: { slug: confirming.slug } });
+			setConfirming(null);
+			await router.invalidate();
+		} catch (err) {
+			setError(
+				err instanceof Error ? err.message : "Could not delete the space",
+			);
+		} finally {
+			setBusy(false);
+		}
+	}
+
+	function requestDelete(space: DashboardSpace) {
+		setError(null);
+		setConfirming(space);
+	}
 
 	return (
 		<div className="page-wrap py-12">
@@ -361,10 +499,25 @@ function DashboardPage() {
 			) : (
 				<div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 					{spaces.map((s, i) => (
-						<SpaceCard key={s.id} space={s} index={i} />
+						<SpaceCard
+							key={s.id}
+							space={s}
+							index={i}
+							onRequestDelete={requestDelete}
+						/>
 					))}
 					<NewSpaceCard />
 				</div>
+			)}
+
+			{confirming && (
+				<DeleteSpaceDialog
+					space={confirming}
+					busy={busy}
+					error={error}
+					onCancel={() => setConfirming(null)}
+					onConfirm={doDelete}
+				/>
 			)}
 		</div>
 	);

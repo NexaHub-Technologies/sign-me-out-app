@@ -3,7 +3,7 @@ import { and, asc, count, countDistinct, desc, eq, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 import { db } from "#/db/index.ts";
-import { marks, signSpaces } from "#/db/schema.ts";
+import { marks, payments, signSpaces } from "#/db/schema.ts";
 import { BOARD_COLOR_IDS } from "#/lib/board-colors.ts";
 import { type GiftInput, normalizeGift } from "#/lib/gift.ts";
 import {
@@ -16,6 +16,7 @@ import {
 	assertSpacePaymentPaid,
 	consumeSpacePayment,
 } from "#/server/payments-core.ts";
+import { deleteSpaceMedia } from "#/server/storage.ts";
 
 function slugify(title: string) {
 	const base = title
@@ -162,6 +163,47 @@ export const lockSpace = createServerFn({ method: "POST" })
 			})
 			.where(eq(signSpaces.id, space.id));
 		return { status: data.locked ? "locked" : "open" };
+	});
+
+/**
+ * Host-only: permanently delete a space and everything on it. Marks cascade at
+ * the DB level (marks.space_id ON DELETE CASCADE); we also drop the space's
+ * payment rows first (in the same transaction) so the single-use payment
+ * reference can't be recycled into a free space once its FK is nulled, and
+ * best-effort purge the private voice/photo files. Irreversible.
+ */
+export const deleteSpace = createServerFn({ method: "POST" })
+	.inputValidator((input: { slug: string }) => {
+		const slug = input.slug?.trim();
+		if (!slug) throw new Error("Missing space");
+		return { slug };
+	})
+	.handler(async ({ data }) => {
+		const [space] = await db
+			.select()
+			.from(signSpaces)
+			.where(eq(signSpaces.slug, data.slug))
+			.limit(1);
+		if (!space) throw new Error("Space not found");
+		const user = await getSessionUser();
+		if (!isSpaceHost(space, user)) {
+			throw new Error("Only the host can delete this space");
+		}
+
+		// Purge private media before the row is gone (uses the stored space id).
+		// Never blocks the delete — deleteSpaceMedia swallows its own errors, but
+		// guard here too in case the bucket/service is unreachable.
+		await deleteSpaceMedia(space.id).catch(() => {});
+
+		await db.transaction(async (tx) => {
+			// Drop the payment(s) tied to this space first. If we let the space
+			// delete null their space_id (ON DELETE SET NULL), the reference would
+			// look unused again and could open another space for free.
+			await tx.delete(payments).where(eq(payments.spaceId, space.id));
+			await tx.delete(signSpaces).where(eq(signSpaces.id, space.id));
+		});
+
+		return { ok: true as const };
 	});
 
 export const setBoardColor = createServerFn({ method: "POST" })

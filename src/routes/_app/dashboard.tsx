@@ -154,7 +154,8 @@ function SpaceCard({
 								e.stopPropagation();
 								onRequestDelete(space);
 							}}
-							className="grid size-7 place-items-center rounded-lg text-ink-faint opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+							// Always visible on touch (no hover); hover/focus-reveal from sm up.
+							className="grid size-7 place-items-center rounded-lg text-ink-faint opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive sm:opacity-0 sm:focus-visible:opacity-100 sm:group-hover:opacity-100"
 							title="Delete space"
 							aria-label={`Delete ${space.title}`}
 						>

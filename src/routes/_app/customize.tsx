@@ -249,17 +249,35 @@ function CustomizePage() {
 					<div className="grid gap-6 sm:grid-cols-2">
 						<div className="flex flex-col gap-2">
 							<Label htmlFor="qty">Quantity</Label>
-							<Input
-								id="qty"
-								type="number"
-								min={1}
-								max={MAX_QTY}
-								value={qty}
-								onChange={(e) =>
-									setQty(Math.max(1, Number(e.target.value) || 1))
-								}
-								className="h-11 bg-card"
-							/>
+							<div className="flex h-11 items-center rounded-md border border-input bg-card shadow-xs">
+								<button
+									type="button"
+									onClick={() => setQty((q) => Math.max(1, q - 1))}
+									disabled={qty <= 1}
+									className="flex size-11 shrink-0 items-center justify-center text-ink-soft transition-colors hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+								>
+									−
+								</button>
+								<Input
+									id="qty"
+									type="number"
+									min={1}
+									max={MAX_QTY}
+									value={qty}
+									onChange={(e) =>
+										setQty(Math.max(1, Number(e.target.value) || 1))
+									}
+									className="h-full min-w-0 flex-1 border-0 bg-transparent text-center text-sm shadow-none focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+								/>
+								<button
+									type="button"
+									onClick={() => setQty((q) => Math.min(MAX_QTY, q + 1))}
+									disabled={qty >= MAX_QTY}
+									className="flex size-11 shrink-0 items-center justify-center text-ink-soft transition-colors hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+								>
+									+
+								</button>
+							</div>
 						</div>
 						<div className="flex flex-col gap-2">
 							<Label htmlFor="personalisation">

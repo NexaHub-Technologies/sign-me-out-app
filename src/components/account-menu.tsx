@@ -57,7 +57,7 @@ export function AccountMenu({ user }: { user: SessionUser }) {
 			>
 				<Avatar className="size-9">
 					{user.avatarUrl && <AvatarImage src={user.avatarUrl} alt="" />}
-					<AvatarFallback className="bg-marker-green-deep font-display text-sm font-bold text-white">
+					<AvatarFallback className="bg-marker-blue-deep font-display text-sm font-bold text-white">
 						{initial}
 					</AvatarFallback>
 				</Avatar>

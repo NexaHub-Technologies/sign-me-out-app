@@ -63,8 +63,8 @@ function timeAgo(iso: string): string {
 function LivePulse() {
 	return (
 		<span className="relative flex size-2.5">
-			<span className="absolute inline-flex size-full animate-ping rounded-full bg-marker-green opacity-70" />
-			<span className="relative inline-flex size-2.5 rounded-full bg-marker-green-deep" />
+			<span className="absolute inline-flex size-full animate-ping rounded-full bg-marker-blue opacity-70" />
+			<span className="relative inline-flex size-2.5 rounded-full bg-marker-blue-deep" />
 		</span>
 	);
 }
@@ -139,7 +139,7 @@ function SpaceCard({
 					) : (
 						<LivePulse />
 					)}
-					<ArrowUpRight className="size-5 text-ink-faint transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-marker-green-deep" />
+					<ArrowUpRight className="size-5 text-ink-faint transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-marker-blue-deep" />
 				</div>
 
 				{/* canvas preview — real board colour + sketch-grid dots; the space
@@ -179,7 +179,7 @@ function SpaceCard({
 					{/* stat chips read on any board colour */}
 					<div className="absolute bottom-3 left-4 flex items-center gap-2">
 						<span className="inline-flex items-center gap-1.5 rounded-full bg-paper/85 px-2.5 py-1 text-xs font-semibold text-ink shadow-sm backdrop-blur">
-							<PenLine className="size-3.5 text-marker-green-deep" />
+							<PenLine className="size-3.5 text-marker-blue-deep" />
 							{space.marks}
 						</span>
 						<span className="inline-flex items-center gap-1.5 rounded-full bg-paper/85 px-2.5 py-1 text-xs font-semibold text-ink shadow-sm backdrop-blur">
@@ -196,7 +196,7 @@ function SpaceCard({
 							key={t.id}
 							className={cn(
 								"grid size-7 place-items-center rounded-lg",
-								t.active ? "bg-marker-green-deep text-white" : "text-ink-faint",
+								t.active ? "bg-marker-blue-deep text-white" : "text-ink-faint",
 							)}
 						>
 							<t.icon className="size-3.5" />
@@ -225,7 +225,7 @@ function SpaceCard({
 function NewSpaceCard() {
 	return (
 		<Link to="/create" className="group block no-underline">
-			<article className="pin flex h-full min-h-[280px] flex-col overflow-hidden rounded-2xl border-2 border-dashed border-line-strong bg-card/40 transition-colors group-hover:border-marker-green group-hover:bg-marker-green-deep/[0.04]">
+			<article className="pin flex h-full min-h-[280px] flex-col overflow-hidden rounded-2xl border-2 border-dashed border-line-strong bg-card/40 transition-colors group-hover:border-marker-blue group-hover:bg-marker-blue-deep/[0.04]">
 				<div className="flex items-center gap-2.5 border-b border-dashed border-line-strong px-4 py-2.5">
 					<span className="size-2.5 rounded-full bg-line-strong" />
 					<span className="font-display text-sm font-bold text-ink-soft">
@@ -241,7 +241,7 @@ function NewSpaceCard() {
 					}}
 				>
 					<div>
-						<span className="pop mx-auto grid size-14 place-items-center rounded-full bg-marker-green-deep text-white shadow-md transition-transform group-hover:rotate-90">
+						<span className="pop mx-auto grid size-14 place-items-center rounded-full bg-marker-blue-deep text-white shadow-md transition-transform group-hover:rotate-90">
 							<Plus className="size-7" />
 						</span>
 						<p className="font-display mt-3 text-lg font-bold text-ink">
@@ -318,7 +318,7 @@ function DashboardPage() {
 					<div className="rise-in">
 						<Badge
 							variant="outline"
-							className="gap-1.5 rounded-full border-line bg-card px-3 py-1 text-marker-green-deep"
+							className="gap-1.5 rounded-full border-line bg-card px-3 py-1 text-marker-blue-deep"
 						>
 							<Sparkles className="size-3.5" /> Welcome back
 						</Badge>
@@ -326,7 +326,7 @@ function DashboardPage() {
 							Your sign-out{" "}
 							<span
 								className="hl"
-								style={{ "--hl": "var(--marker-green)" } as CSSProperties}
+								style={{ "--hl": "var(--marker-blue)" } as CSSProperties}
 							>
 								spaces
 							</span>

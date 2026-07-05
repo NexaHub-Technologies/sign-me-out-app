@@ -177,7 +177,7 @@ function WearPage() {
 						key={s}
 						className="inline-flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-sm font-medium text-ink-soft"
 					>
-						<Check className="size-4 text-marker-green-deep" /> {s}
+						<Check className="size-4 text-marker-blue-deep" /> {s}
 					</span>
 				))}
 			</div>
@@ -235,7 +235,7 @@ function WearPage() {
 					},
 				].map((f) => (
 					<div key={f.t} className="rounded-2xl border border-line bg-card p-6">
-						<f.icon className="size-5 text-marker-green-deep" />
+						<f.icon className="size-5 text-marker-blue-deep" />
 						<h3 className="font-display mt-3 font-bold text-ink">{f.t}</h3>
 						<p className="mt-1 text-sm text-ink-soft">{f.b}</p>
 					</div>

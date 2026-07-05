@@ -126,7 +126,7 @@ function SignupPage() {
 					<p className="text-sm font-medium text-destructive">{error}</p>
 				)}
 				{notice && (
-					<p className="text-sm font-medium text-marker-green-deep">{notice}</p>
+					<p className="text-sm font-medium text-marker-blue-deep">{notice}</p>
 				)}
 
 				<Button
@@ -145,7 +145,7 @@ function SignupPage() {
 
 			<p className="mt-6 text-center text-sm text-ink-soft">
 				Already signed up?{" "}
-				<Link to="/login" className="font-semibold text-marker-green-deep">
+				<Link to="/login" className="font-semibold text-marker-blue-deep">
 					Log in
 				</Link>
 			</p>

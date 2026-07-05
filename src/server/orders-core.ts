@@ -188,8 +188,8 @@ function orderText(order: ValidOrder, reference: string): string {
 /** Shared shell: paper card on ink-soft background, scrawl header accent. */
 function emailShell(heading: string, lede: string, inner: string): string {
 	return `<div style="margin:0;padding:32px 16px;background:#f1efe8;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#1b1b19;">
-	<div style="max-width:560px;margin:0 auto;background:#fbfaf6;border:1px solid #e4e1d6;border-radius:16px;padding:32px;">
-		<p style="margin:0;font-family:'Segoe Script','Comic Sans MS',cursive;font-size:20px;color:#15784a;transform:rotate(-2deg);">Sign Me Out</p>
+	<div style="max-width:560px;margin:0 auto;background:#f6f8fc;border:1px solid #dbe4f0;border-radius:16px;padding:32px;">
+		<p style="margin:0;font-family:'Segoe Script','Comic Sans MS',cursive;font-size:20px;color:#1d4ed8;transform:rotate(-2deg);">Sign Me Out</p>
 		<h1 style="margin:16px 0 0;font-size:22px;line-height:1.3;">${heading}</h1>
 		<p style="margin:8px 0 0;font-size:15px;line-height:1.6;color:#4a4a45;">${lede}</p>
 		${inner}

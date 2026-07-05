@@ -177,7 +177,7 @@ function CustomizePage() {
 											className={cn(
 												"rounded-full border px-4 py-2 text-sm font-medium transition-colors",
 												productId === p.id
-													? "border-marker-green bg-marker-green-deep/[0.06] text-ink"
+													? "border-marker-blue bg-marker-blue-deep/[0.06] text-ink"
 													: "border-line bg-card text-ink-soft hover:border-line-strong",
 											)}
 										>
@@ -207,7 +207,7 @@ function CustomizePage() {
 										className={cn(
 											"grid size-11 place-items-center rounded-xl border text-sm font-semibold transition-colors",
 											size === s
-												? "border-marker-green bg-marker-green-deep/[0.06] text-ink"
+												? "border-marker-blue bg-marker-blue-deep/[0.06] text-ink"
 												: "border-line bg-card text-ink-soft hover:border-line-strong",
 										)}
 									>
@@ -232,7 +232,7 @@ function CustomizePage() {
 									className={cn(
 										"flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
 										colourId === c.id
-											? "border-marker-green bg-marker-green-deep/[0.06] text-ink"
+											? "border-marker-blue bg-marker-blue-deep/[0.06] text-ink"
 											: "border-line bg-card text-ink-soft hover:border-line-strong",
 									)}
 								>
@@ -431,8 +431,8 @@ function CustomizePage() {
 						)}
 
 						{placed ? (
-							<div className="mt-5 rounded-2xl bg-marker-green-deep/[0.07] p-4">
-								<p className="flex items-center gap-2 font-semibold text-marker-green-deep">
+							<div className="mt-5 rounded-2xl bg-marker-blue-deep/[0.07] p-4">
+								<p className="flex items-center gap-2 font-semibold text-marker-blue-deep">
 									<Check className="size-4" /> Order confirmed
 								</p>
 								<p className="mt-1 text-sm text-ink-soft">

@@ -80,12 +80,12 @@ function HowItWorksPage() {
 						key={s.n}
 						className="feature-card flex-row gap-5 border-0 p-7 shadow-none"
 					>
-						<span className="font-display grid size-12 shrink-0 place-items-center rounded-2xl bg-paper-2 text-xl font-extrabold text-marker-green-deep">
+						<span className="font-display grid size-12 shrink-0 place-items-center rounded-2xl bg-paper-2 text-xl font-extrabold text-marker-blue-deep">
 							{s.n}
 						</span>
 						<div>
 							<div className="mb-2 flex items-center gap-2">
-								<s.icon className="size-5 text-marker-green-deep" />
+								<s.icon className="size-5 text-marker-blue-deep" />
 								<h2 className="font-display text-xl font-bold text-ink">
 									{s.title}
 								</h2>

@@ -171,7 +171,7 @@ function HeroBoard() {
 							className="draw-on"
 							style={{ "--len": "900", "--delay": "350ms" } as CSSProperties}
 							d="M70 250c80 40 150-90 230-70s90 120 200 40"
-							stroke="var(--marker-green)"
+							stroke="var(--marker-blue)"
 							strokeWidth="5"
 							strokeLinecap="round"
 							opacity="0.45"
@@ -235,7 +235,7 @@ function HeroBoard() {
 							key={t.label}
 							className={cn(
 								"grid size-8 place-items-center rounded-lg transition-colors",
-								t.active ? "bg-marker-green-deep text-white" : "text-ink-soft",
+								t.active ? "bg-marker-blue-deep text-white" : "text-ink-soft",
 							)}
 						>
 							<t.icon className="size-4" />
@@ -303,13 +303,13 @@ function Hero() {
 				<div className="rise-in">
 					<Badge
 						variant="outline"
-						className="gap-1.5 rounded-full border-line bg-card px-3 py-1 text-marker-green-deep"
+						className="gap-1.5 rounded-full border-line bg-card px-3 py-1 text-marker-blue-deep"
 					>
 						<Sparkles className="size-3.5" /> For the class that finally made it
 					</Badge>
 					<h1 className="font-display mt-5 text-[2.6rem] font-extrabold leading-[1.04] text-ink sm:text-[3.8rem]">
 						Your sign-out only happens once. Make it count with{" "}
-						<span className="marker-underline text-marker-green-deep">
+						<span className="marker-underline text-marker-blue-deep">
 							Sign Me Out.
 						</span>
 					</h1>
@@ -448,7 +448,7 @@ function LeaveSection() {
 					className="feature-card relative justify-between gap-4 overflow-hidden border-0 p-6 text-white shadow-none"
 					style={{
 						background:
-							"linear-gradient(150deg, var(--marker-green), var(--marker-green-deep))",
+							"linear-gradient(150deg, var(--marker-blue), var(--marker-blue-deep))",
 					}}
 				>
 					<span className="scrawl absolute right-4 top-3 rotate-6 text-2xl text-white/70">
@@ -462,7 +462,7 @@ function LeaveSection() {
 					</div>
 					<Button
 						asChild
-						className="pop w-fit rounded-full bg-white text-marker-green-deep hover:bg-white/90"
+						className="pop w-fit rounded-full bg-white text-marker-blue-deep hover:bg-white/90"
 					>
 						<Link to="/signup">
 							Open your space <ArrowRight className="size-4" />
@@ -516,7 +516,7 @@ function HowItWorks() {
 					>
 						<path
 							d="M60 24C220 4 360 36 500 20s300-22 440 4"
-							stroke="var(--marker-green)"
+							stroke="var(--marker-blue)"
 							strokeWidth="2.5"
 							strokeLinecap="round"
 							strokeDasharray="2 10"
@@ -632,7 +632,7 @@ function PricingSection() {
 							"Your space stays live — share the link anytime",
 						].map((item) => (
 							<li key={item} className="flex items-start gap-3">
-								<span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-marker-green-deep/15 text-marker-green-deep">
+								<span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-marker-blue-deep/15 text-marker-blue-deep">
 									<Check className="size-3" />
 								</span>
 								<span className="text-[15px] text-ink-soft">{item}</span>
@@ -676,28 +676,28 @@ function PricingSection() {
 
 							<div className="flex items-center justify-between text-sm">
 								<span className="text-ink-soft">Per-signature fees</span>
-								<span className="font-semibold text-marker-green-deep">₦0</span>
+								<span className="font-semibold text-marker-blue-deep">₦0</span>
 							</div>
 							<div className="flex items-center justify-between text-sm">
 								<span className="text-ink-soft">Monthly subscription</span>
-								<span className="font-semibold text-marker-green-deep">₦0</span>
+								<span className="font-semibold text-marker-blue-deep">₦0</span>
 							</div>
 							<div className="flex items-center justify-between text-sm">
 								<span className="text-ink-soft">Hidden charges</span>
-								<span className="font-semibold text-marker-green-deep">₦0</span>
+								<span className="font-semibold text-marker-blue-deep">₦0</span>
 							</div>
 
 							<div className="h-px bg-line" />
 
 							<div className="flex items-center justify-between">
 								<span className="font-display font-bold text-ink">Total</span>
-								<span className="font-display text-2xl font-extrabold text-marker-green-deep">
+								<span className="font-display text-2xl font-extrabold text-marker-blue-deep">
 									₦1,000
 								</span>
 							</div>
 						</div>
 
-						<span className="scrawl mt-4 block text-right text-base text-marker-green">
+						<span className="scrawl mt-4 block text-right text-base text-marker-blue">
 							worth every kobo ✨
 						</span>
 					</div>
@@ -773,7 +773,7 @@ function ClosingBand() {
 				className="relative overflow-hidden rounded-[2rem] px-6 py-16 text-center text-white sm:px-10"
 				style={{
 					background:
-						"linear-gradient(135deg, var(--marker-green-deep), var(--marker-blue))",
+						"linear-gradient(135deg, var(--marker-blue-deep), var(--marker-blue))",
 				}}
 			>
 				{/* dot grid on the band, like a canvas ready to sign */}
@@ -802,7 +802,7 @@ function ClosingBand() {
 						<Button
 							asChild
 							size="lg"
-							className="pop rounded-full bg-white text-marker-green-deep hover:bg-white/90"
+							className="pop rounded-full bg-white text-marker-blue-deep hover:bg-white/90"
 						>
 							<Link to="/signup">
 								Create your space <ArrowRight className="size-4" />

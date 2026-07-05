@@ -192,7 +192,7 @@ function VoiceMark({
 }) {
 	const seconds = Math.round((mark.durationMs ?? 0) / 1000);
 	const label = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-	const color = mark.color ?? "#15784a";
+	const color = mark.color ?? "#2f6be6";
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const [playing, setPlaying] = useState(false);
 

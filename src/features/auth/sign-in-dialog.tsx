@@ -137,7 +137,7 @@ export function SignInDialog({
 					{mode === "login" ? "New here?" : "Already have an account?"}{" "}
 					<button
 						type="button"
-						className="font-semibold text-marker-green-deep"
+						className="font-semibold text-marker-blue-deep"
 						onClick={() => {
 							setMode(mode === "login" ? "signup" : "login");
 							setMessage(null);

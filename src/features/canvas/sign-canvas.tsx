@@ -127,7 +127,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		const [scale, setScale] = useState(1);
 		const [pos, setPos] = useState({ x: 0, y: 0 });
 		const [tool, setTool] = useState<ToolId>("move");
-		const [colorId, setColorId] = useState<MarkerColorId>("green");
+		const [colorId, setColorId] = useState<MarkerColorId>("blue");
 		const [, tick] = useReducer((n: number) => n + 1, 0);
 		const [saveError, setSaveError] = useState<string | null>(null);
 		const [signInOpen, setSignInOpen] = useState(false);
@@ -145,7 +145,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		const locked = space.status === "locked";
 		const needsAuth = ready && !user;
 		const colorHex =
-			MARKER_COLORS.find((c) => c.id === colorId)?.value ?? "#15784a";
+			MARKER_COLORS.find((c) => c.id === colorId)?.value ?? "#2f6be6";
 
 		useEffect(() => {
 			const el = wrapRef.current;
@@ -769,10 +769,10 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 									"bottom-left",
 									"bottom-right",
 								]}
-								anchorStroke="#15784a"
+								anchorStroke="#1d4ed8"
 								anchorFill="#ffffff"
 								anchorCornerRadius={6}
-								borderStroke="#15784a"
+								borderStroke="#1d4ed8"
 								borderDash={[4, 4]}
 								rotateAnchorOffset={28}
 								boundBoxFunc={(oldBox, newBox) =>
@@ -805,7 +805,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 					}}
 					placeholder="type, then Enter"
 					className={cn(
-						"absolute z-30 min-w-[180px] touch-auto select-text resize-none rounded-md border border-marker-green bg-white/95 px-2 py-1 font-hand text-2xl text-ink shadow-lg outline-none",
+						"absolute z-30 min-w-[180px] touch-auto select-text resize-none rounded-md border border-marker-blue bg-white/95 px-2 py-1 font-hand text-2xl text-ink shadow-lg outline-none",
 						!textDraft && "pointer-events-none",
 					)}
 					style={{
@@ -818,7 +818,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				<div className="absolute left-4 top-4 z-20">
 					{user ? (
 						<span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-strong px-3 py-1.5 text-xs font-medium text-ink-soft shadow-sm">
-							<span className="size-2 rounded-full bg-marker-green" />
+							<span className="size-2 rounded-full bg-marker-blue" />
 							Signing as {user.name}
 						</span>
 					) : (
@@ -826,7 +826,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 							<button
 								type="button"
 								onClick={() => setSignInOpen(true)}
-								className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-strong px-3 py-1.5 text-xs font-semibold text-marker-green-deep shadow-sm hover:bg-card"
+								className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-strong px-3 py-1.5 text-xs font-semibold text-marker-blue-deep shadow-sm hover:bg-card"
 							>
 								Sign in to sign
 							</button>
@@ -858,7 +858,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 						<p className="font-display text-lg font-bold text-ink/55">
 							Pick the pen and leave your mark
 						</p>
-						<p className="scrawl mt-1 text-2xl text-marker-green-deep/60">
+						<p className="scrawl mt-1 text-2xl text-marker-blue-deep/60">
 							sign right here ✍️
 						</p>
 					</div>
@@ -1121,7 +1121,7 @@ function Dock({
 								active
 									? t.id === "voice" && recording
 										? "bg-marker-pink text-white"
-										: "bg-marker-green-deep text-white"
+										: "bg-marker-blue-deep text-white"
 									: "text-ink-soft hover:bg-ink/5 hover:text-ink",
 							)}
 						>

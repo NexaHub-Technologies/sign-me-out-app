@@ -37,7 +37,7 @@ export function SiteFooter() {
 						The last paper is done. Open a canvas, share one link, and let
 						everyone sign you out.
 					</p>
-					<p className="scrawl mt-5 text-2xl text-marker-green-deep">
+					<p className="scrawl mt-5 text-2xl text-marker-blue-deep">
 						we made it 🎓
 					</p>
 				</div>

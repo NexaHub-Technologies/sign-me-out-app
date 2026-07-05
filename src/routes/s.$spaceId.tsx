@@ -249,7 +249,7 @@ function BoardColorPicker({
 								className={cn(
 									"size-7 rounded-full border transition-transform",
 									value === c.id
-										? "border-transparent ring-2 ring-marker-green ring-offset-2 ring-offset-card"
+										? "border-transparent ring-2 ring-marker-blue ring-offset-2 ring-offset-card"
 										: "border-line hover:scale-110",
 								)}
 								style={{ backgroundColor: c.bg }}

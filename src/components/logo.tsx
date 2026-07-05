@@ -20,7 +20,7 @@ export function Logo({
 		>
 			<img src="/logo.svg" alt="Sign Me Out logo" className="h-9 w-auto" />
 			<span className="font-display text-lg font-bold tracking-tight text-ink">
-				Sign Me <span className="text-marker-green-deep">Out</span>
+				Sign Me <span className="text-marker-blue-deep">Out</span>
 			</span>
 		</Link>
 	);

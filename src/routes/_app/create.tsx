@@ -152,7 +152,7 @@ function CreatePage() {
 								className={cn(
 									"size-9 rounded-full border transition-transform",
 									color === c.id
-										? "border-transparent ring-2 ring-marker-green ring-offset-2 ring-offset-paper"
+										? "border-transparent ring-2 ring-marker-blue ring-offset-2 ring-offset-paper"
 										: "border-line hover:scale-110",
 								)}
 								style={{ backgroundColor: c.bg }}
@@ -169,7 +169,7 @@ function CreatePage() {
 						aria-expanded={giftOpen}
 						className="flex w-full items-start gap-3 text-left"
 					>
-						<span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-marker-green/10 text-marker-green-deep">
+						<span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-marker-blue/10 text-marker-blue-deep">
 							<Gift className="size-5" />
 						</span>
 						<span className="min-w-0 flex-1">
@@ -181,7 +181,7 @@ function CreatePage() {
 								Show a bank account on the canvas so friends can send you money.
 							</span>
 						</span>
-						<span className="mt-1 text-sm font-semibold text-marker-green-deep">
+						<span className="mt-1 text-sm font-semibold text-marker-blue-deep">
 							{giftOpen ? "Remove" : "Add"}
 						</span>
 					</button>

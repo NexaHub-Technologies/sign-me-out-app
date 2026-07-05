@@ -56,14 +56,14 @@ function LoginPage() {
 
 	return (
 		<div>
-			<span className="inline-flex rotate-[-2deg] items-center rounded-full bg-marker-green-deep/10 px-3 py-1 text-xs font-bold text-marker-green-deep">
+			<span className="inline-flex rotate-[-2deg] items-center rounded-full bg-marker-blue-deep/10 px-3 py-1 text-xs font-bold text-marker-blue-deep">
 				good to see you 👋
 			</span>
 			<h1 className="font-display mt-4 text-4xl font-extrabold text-ink">
 				Welcome{" "}
 				<span
 					className="hl"
-					style={{ "--hl": "var(--marker-green)" } as CSSProperties}
+					style={{ "--hl": "var(--marker-blue)" } as CSSProperties}
 				>
 					back
 				</span>
@@ -103,7 +103,7 @@ function LoginPage() {
 						<Label htmlFor="password">Password</Label>
 						<button
 							type="button"
-							className="text-xs font-medium text-marker-green-deep"
+							className="text-xs font-medium text-marker-blue-deep"
 						>
 							Forgot?
 						</button>
@@ -135,7 +135,7 @@ function LoginPage() {
 
 			<p className="mt-6 text-center text-sm text-ink-soft">
 				New here?{" "}
-				<Link to="/signup" className="font-semibold text-marker-green-deep">
+				<Link to="/signup" className="font-semibold text-marker-blue-deep">
 					Create your space
 				</Link>
 			</p>

@@ -66,7 +66,7 @@ export function GiftCard({
 					<button
 						type="button"
 						onClick={() => setOpen(true)}
-						className="inline-flex items-center gap-2 rounded-full border border-marker-green/30 bg-surface-strong px-3.5 py-2 text-sm font-semibold text-marker-green-deep shadow-md backdrop-blur-md hover:bg-card"
+						className="inline-flex items-center gap-2 rounded-full border border-marker-blue/30 bg-surface-strong px-3.5 py-2 text-sm font-semibold text-marker-blue-deep shadow-md backdrop-blur-md hover:bg-card"
 					>
 						<Gift className="size-4" /> Send a gift
 					</button>
@@ -125,7 +125,7 @@ function GiftPanel({
 		<div className="paper-card w-full rounded-2xl p-4">
 			<div className="flex items-center justify-between gap-2">
 				<span className="inline-flex items-center gap-1.5 font-display text-sm font-extrabold text-ink">
-					<Gift className="size-4 text-marker-green-deep" /> Send a cash gift
+					<Gift className="size-4 text-marker-blue-deep" /> Send a cash gift
 				</span>
 				<div className="flex items-center gap-0.5">
 					{isHost && (
@@ -154,7 +154,7 @@ function GiftPanel({
 			<button
 				type="button"
 				onClick={copyNumber}
-				className="group mt-3 flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-card px-3 py-2.5 text-left transition-colors hover:border-marker-green/40"
+				className="group mt-3 flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-card px-3 py-2.5 text-left transition-colors hover:border-marker-blue/40"
 			>
 				<span className="min-w-0">
 					<span className="block font-display text-xl font-bold tracking-wide tabular-nums text-ink">
@@ -168,8 +168,8 @@ function GiftPanel({
 					className={cn(
 						"inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold",
 						copied
-							? "bg-marker-green/15 text-marker-green-deep"
-							: "bg-ink/5 text-ink-soft group-hover:bg-marker-green/10 group-hover:text-marker-green-deep",
+							? "bg-marker-blue/15 text-marker-blue-deep"
+							: "bg-ink/5 text-ink-soft group-hover:bg-marker-blue/10 group-hover:text-marker-blue-deep",
 					)}
 				>
 					{copied ? (
@@ -184,7 +184,7 @@ function GiftPanel({
 				</span>
 			</button>
 
-			<p className="scrawl mt-2 pl-1 text-lg text-marker-green-deep">
+			<p className="scrawl mt-2 pl-1 text-lg text-marker-blue-deep">
 				{gift.accountName}
 			</p>
 		</div>

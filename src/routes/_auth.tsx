@@ -64,7 +64,7 @@ function AuthLayout() {
 				className="relative hidden overflow-hidden border-l border-line lg:block"
 				style={{
 					background:
-						"linear-gradient(150deg, color-mix(in oklab, var(--marker-green) 12%, var(--paper-2)), var(--paper-2))",
+						"linear-gradient(150deg, color-mix(in oklab, var(--marker-blue) 12%, var(--paper-2)), var(--paper-2))",
 				}}
 			>
 				<div
@@ -88,7 +88,7 @@ function AuthLayout() {
 						className="draw-on"
 						style={{ "--len": "1200", "--delay": "300ms" } as CSSProperties}
 						d="M80 360c120 70 220-120 320-70s120 200 130 240"
-						stroke="var(--marker-green)"
+						stroke="var(--marker-blue)"
 						strokeWidth="6"
 						strokeLinecap="round"
 						opacity="0.4"
@@ -149,7 +149,7 @@ function AuthLayout() {
 						Your board is waiting for its{" "}
 						<span
 							className="hl"
-							style={{ "--hl": "var(--marker-green)" } as CSSProperties}
+							style={{ "--hl": "var(--marker-blue)" } as CSSProperties}
 						>
 							first signature.
 						</span>

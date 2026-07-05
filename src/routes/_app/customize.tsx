@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Check, Loader2, Mail, Package } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Check, ChevronDown, Loader2, Mail, Package } from "lucide-react";
 import { type CSSProperties, useEffect, useState } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
@@ -10,21 +10,24 @@ import { useSessionUser } from "#/features/auth/use-session-user.ts";
 import { COLOURS, MAX_QTY, PRODUCTS, SIZES } from "#/lib/order-options.ts";
 import { cn } from "#/lib/utils.ts";
 import { placeOrder } from "#/server/orders.ts";
+import { listMySpaces } from "#/server/spaces.ts";
 
 export const Route = createFileRoute("/_app/customize")({
 	ssr: false,
+	loader: async () => listMySpaces(),
 	component: CustomizePage,
 });
 
 function CustomizePage() {
 	const { user } = useSessionUser();
+	const spaces = Route.useLoaderData();
 
 	const [productId, setProductId] = useState("tee");
 	const [size, setSize] = useState("M");
 	const [colourId, setColourId] = useState("white");
 	const [qty, setQty] = useState(1);
 	const [personalisation, setPersonalisation] = useState("");
-	const [boardRef, setBoardRef] = useState("");
+	const [boardSlug, setBoardSlug] = useState("");
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [phone, setPhone] = useState("");
@@ -46,8 +49,13 @@ function CustomizePage() {
 
 	const product = PRODUCTS.find((p) => p.id === productId) ?? PRODUCTS[0];
 	const colour = COLOURS.find((c) => c.id === colourId) ?? COLOURS[0];
+	const board = spaces.find((s) => s.slug === boardSlug);
 
 	async function submitOrder() {
+		if (!board) {
+			setError("Pick the sign-out board we're printing.");
+			return;
+		}
 		if (!name.trim() || !phone.trim() || !address.trim()) {
 			setError(
 				"Add your name, phone number and delivery address so we can reach you.",
@@ -68,7 +76,7 @@ function CustomizePage() {
 					colourId,
 					qty,
 					personalisation,
-					boardRef,
+					boardRef: `${board.title} (${window.location.origin}/s/${board.slug})`,
 					name,
 					email,
 					phone,
@@ -224,14 +232,39 @@ function CustomizePage() {
 					</div>
 
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="boardRef">Which sign-out board? (optional)</Label>
-						<Input
-							id="boardRef"
-							value={boardRef}
-							onChange={(e) => setBoardRef(e.target.value)}
-							placeholder="Space name or link, e.g. CSC Class of 2026"
-							className="h-11 bg-card"
-						/>
+						<Label htmlFor="boardRef">Which sign-out board?</Label>
+						{spaces.length > 0 ? (
+							<div className="relative">
+								<select
+									id="boardRef"
+									value={boardSlug}
+									onChange={(e) => setBoardSlug(e.target.value)}
+									className={cn(
+										"h-11 w-full appearance-none rounded-md border border-input bg-card px-3 text-sm shadow-xs outline-none transition-[color,box-shadow]",
+										"focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+										!boardSlug && "text-muted-foreground",
+									)}
+								>
+									<option value="" disabled>
+										Choose the board we're printing…
+									</option>
+									{spaces.map((s) => (
+										<option key={s.id} value={s.slug}>
+											{s.title}
+										</option>
+									))}
+								</select>
+								<ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-faint" />
+							</div>
+						) : (
+							<p className="rounded-md border border-dashed border-line-strong bg-card px-3 py-2.5 text-sm text-ink-soft">
+								You don't have a sign-out board yet — it's what we print.{" "}
+								<Link to="/create" className="text-link font-semibold">
+									Create one first
+								</Link>
+								.
+							</p>
+						)}
 					</div>
 
 					<div className="border-t border-line pt-7">
@@ -331,11 +364,11 @@ function CustomizePage() {
 									</dd>
 								</div>
 							)}
-							{boardRef.trim() && (
+							{board && (
 								<div className="flex justify-between gap-4">
 									<dt className="text-ink-faint">Board</dt>
 									<dd className="truncate text-right font-medium text-ink">
-										{boardRef.trim()}
+										{board.title}
 									</dd>
 								</div>
 							)}

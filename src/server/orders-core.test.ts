@@ -8,7 +8,7 @@ const base: OrderInput = {
 	colourId: "white",
 	qty: 2,
 	personalisation: "Class of 2026",
-	boardRef: "",
+	boardRef: "CSC Class of 2026 (https://signmeout.app/s/csc-2026)",
 	name: "  Ada Obi  ",
 	email: "ada@example.com",
 	phone: "0801 234 5678",
@@ -44,6 +44,10 @@ describe("validateOrder", () => {
 		expect(() => validateOrder({ ...base, qty: 0 })).toThrow(/quantity/i);
 		expect(() => validateOrder({ ...base, qty: 501 })).toThrow(/quantity/i);
 		expect(() => validateOrder({ ...base, qty: 1.5 })).toThrow(/quantity/i);
+	});
+
+	it("requires a sign-out board", () => {
+		expect(() => validateOrder({ ...base, boardRef: "  " })).toThrow(/board/i);
 	});
 
 	it("requires contact details and a plausible email", () => {

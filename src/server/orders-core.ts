@@ -85,6 +85,9 @@ export function validateOrder(input: OrderInput): ValidOrder {
 	if (!Number.isInteger(clean.qty) || clean.qty < 1 || clean.qty > MAX_QTY) {
 		throw new Error(`Quantity must be between 1 and ${MAX_QTY}`);
 	}
+	if (!clean.boardRef) {
+		throw new Error("Pick the sign-out board we're printing.");
+	}
 	if (!clean.name || !clean.phone || !clean.address) {
 		throw new Error(
 			"Add your name, phone number and delivery address so we can reach you.",
@@ -161,7 +164,7 @@ function orderRows(order: ValidOrder): [string, string][] {
 		["Colour", order.colourLabel],
 		["Quantity", String(order.qty)],
 		["Personalisation", order.personalisation || "—"],
-		["Sign-out board", order.boardRef || "—"],
+		["Sign-out board", order.boardRef],
 		["Name", order.name],
 		["Email", order.email],
 		["Phone / WhatsApp", order.phone],

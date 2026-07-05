@@ -8,6 +8,7 @@ import {
 export type SessionUser = {
 	id: string;
 	name: string;
+	email: string | null;
 	avatarUrl: string | null;
 };
 
@@ -17,6 +18,7 @@ function toUser(u: any): SessionUser {
 	return {
 		id: u.id,
 		name: m.full_name || m.name || u.email?.split("@")[0] || "Signer",
+		email: u.email ?? null,
 		avatarUrl: m.avatar_url ?? null,
 	};
 }

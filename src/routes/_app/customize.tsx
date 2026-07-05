@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, Mail, Package } from "lucide-react";
+import { Check, Loader2, Mail, Package } from "lucide-react";
 import { type CSSProperties, useEffect, useState } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
@@ -7,45 +7,14 @@ import { Input } from "#/components/ui/input.tsx";
 import { Label } from "#/components/ui/label.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { useSessionUser } from "#/features/auth/use-session-user.ts";
+import { COLOURS, MAX_QTY, PRODUCTS, SIZES } from "#/lib/order-options.ts";
 import { cn } from "#/lib/utils.ts";
+import { placeOrder } from "#/server/orders.ts";
 
 export const Route = createFileRoute("/_app/customize")({
 	ssr: false,
 	component: CustomizePage,
 });
-
-const ORDER_EMAIL = "nexahubt@gmail.com";
-
-type Product = {
-	id: string;
-	name: string;
-	group: "Wear" | "Souvenirs";
-	sizes: boolean;
-};
-
-const PRODUCTS: Product[] = [
-	{ id: "tee", name: "Sign-out tee", group: "Wear", sizes: true },
-	{ id: "hoodie", name: "Heavy hoodie", group: "Wear", sizes: true },
-	{ id: "sweatshirt", name: "Crew sweatshirt", group: "Wear", sizes: true },
-	{ id: "tote", name: "Tote bag", group: "Wear", sizes: false },
-	{ id: "cap", name: "Cap", group: "Wear", sizes: false },
-	{ id: "framed", name: "Framed print", group: "Wear", sizes: false },
-	{ id: "mug", name: "Mug", group: "Souvenirs", sizes: false },
-	{ id: "cup", name: "Travel cup", group: "Souvenirs", sizes: false },
-	{ id: "wristband", name: "Wristband", group: "Souvenirs", sizes: false },
-	{ id: "keychain", name: "Key chain", group: "Souvenirs", sizes: false },
-];
-
-const COLOURS = [
-	{ id: "white", label: "Cotton white", swatch: "#fbfaf6" },
-	{ id: "green", label: "Naija green", swatch: "#1e9e5a" },
-	{ id: "pink", label: "Pink", swatch: "#e84b7a" },
-	{ id: "blue", label: "Blue", swatch: "#2f6be6" },
-	{ id: "amber", label: "Amber", swatch: "#f2a33c" },
-	{ id: "black", label: "Chalk black", swatch: "#1b1b19" },
-];
-
-const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
 function CustomizePage() {
 	const { user } = useSessionUser();
@@ -57,54 +26,66 @@ function CustomizePage() {
 	const [personalisation, setPersonalisation] = useState("");
 	const [boardRef, setBoardRef] = useState("");
 	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
 	const [phone, setPhone] = useState("");
 	const [address, setAddress] = useState("");
 	const [notes, setNotes] = useState("");
 	const [error, setError] = useState<string | null>(null);
-	const [sent, setSent] = useState(false);
+	const [submitting, setSubmitting] = useState(false);
+	const [placed, setPlaced] = useState<{
+		reference: string;
+		confirmationSent: boolean;
+	} | null>(null);
 
-	// Prefill the buyer's name from their account once it loads.
+	// Prefill the buyer's name and email from their account once it loads.
 	useEffect(() => {
 		if (user?.name) setName((n) => n || user.name);
+		const userEmail = user?.email;
+		if (userEmail) setEmail((e) => e || userEmail);
 	}, [user]);
 
 	const product = PRODUCTS.find((p) => p.id === productId) ?? PRODUCTS[0];
 	const colour = COLOURS.find((c) => c.id === colourId) ?? COLOURS[0];
 
-	function buildMailto() {
-		const lines = [
-			"New order from Sign Me Out",
-			"",
-			`Item: ${product.name}`,
-			...(product.sizes ? [`Size: ${size}`] : []),
-			`Colour: ${colour.label}`,
-			`Quantity: ${qty}`,
-			`Personalisation: ${personalisation.trim() || "—"}`,
-			`Sign-out board: ${boardRef.trim() || "—"}`,
-			"",
-			"— Delivery —",
-			`Name: ${name.trim()}`,
-			`Phone / WhatsApp: ${phone.trim()}`,
-			`Address: ${address.trim()}`,
-			"",
-			`Notes: ${notes.trim() || "—"}`,
-		];
-		const subject = `Sign Me Out order — ${product.name} (x${qty})`;
-		return `mailto:${ORDER_EMAIL}?subject=${encodeURIComponent(
-			subject,
-		)}&body=${encodeURIComponent(lines.join("\n"))}`;
-	}
-
-	function placeOrder() {
+	async function submitOrder() {
 		if (!name.trim() || !phone.trim() || !address.trim()) {
 			setError(
 				"Add your name, phone number and delivery address so we can reach you.",
 			);
 			return;
 		}
+		if (!email.trim()) {
+			setError("Add your email so we can confirm your order.");
+			return;
+		}
 		setError(null);
-		window.location.href = buildMailto();
-		setSent(true);
+		setSubmitting(true);
+		try {
+			const result = await placeOrder({
+				data: {
+					productId,
+					size,
+					colourId,
+					qty,
+					personalisation,
+					boardRef,
+					name,
+					email,
+					phone,
+					address,
+					notes,
+				},
+			});
+			setPlaced(result);
+		} catch (err) {
+			setError(
+				err instanceof Error
+					? err.message
+					: "We couldn't send your order just now — please try again.",
+			);
+		} finally {
+			setSubmitting(false);
+		}
 	}
 
 	return (
@@ -123,8 +104,8 @@ function CustomizePage() {
 			</h1>
 			<p className="mt-3 max-w-2xl text-lg text-ink-soft">
 				Pick a piece, choose your options, and we'll send it your way. Placing
-				an order opens your email to {ORDER_EMAIL} with everything filled in —
-				just hit send.
+				an order sends it straight to our print team, and we'll email you a
+				confirmation.
 			</p>
 
 			<div className="mt-10 grid gap-8 lg:grid-cols-[1.5fr_0.9fr]">
@@ -220,7 +201,7 @@ function CustomizePage() {
 								id="qty"
 								type="number"
 								min={1}
-								max={500}
+								max={MAX_QTY}
 								value={qty}
 								onChange={(e) =>
 									setQty(Math.max(1, Number(e.target.value) || 1))
@@ -280,6 +261,21 @@ function CustomizePage() {
 									className="h-11 bg-card"
 								/>
 							</div>
+						</div>
+						<div className="mt-6 flex flex-col gap-2">
+							<Label htmlFor="email">Email</Label>
+							<Input
+								id="email"
+								type="email"
+								value={email}
+								onChange={(e) => setEmail(e.target.value)}
+								placeholder="ada@example.com"
+								autoComplete="email"
+								className="h-11 bg-card"
+							/>
+							<p className="text-xs text-ink-faint">
+								We'll send your order confirmation here.
+							</p>
 						</div>
 						<div className="mt-6 flex flex-col gap-2">
 							<Label htmlFor="address">Delivery address</Label>
@@ -351,28 +347,36 @@ function CustomizePage() {
 							</p>
 						)}
 
-						{sent ? (
+						{placed ? (
 							<div className="mt-5 rounded-2xl bg-marker-green-deep/[0.07] p-4">
 								<p className="flex items-center gap-2 font-semibold text-marker-green-deep">
-									<Check className="size-4" /> Email ready
+									<Check className="size-4" /> Order sent
 								</p>
 								<p className="mt-1 text-sm text-ink-soft">
-									Your email app opened with the order to {ORDER_EMAIL}. Hit
-									send to place it. Didn't open?{" "}
-									<a href={buildMailto()} className="text-link font-semibold">
-										Reopen it
-									</a>
-									.
+									Your order <strong>{placed.reference}</strong> is with our
+									print team.{" "}
+									{placed.confirmationSent
+										? `We've emailed a confirmation to ${email.trim()}.`
+										: "We couldn't email your confirmation, but the order went through — we'll reach you on the details you gave."}
 								</p>
 							</div>
 						) : (
 							<Button
 								type="button"
 								size="lg"
-								onClick={placeOrder}
+								onClick={submitOrder}
+								disabled={submitting}
 								className="pop mt-5 w-full rounded-full"
 							>
-								<Mail className="size-4" /> Place order via email
+								{submitting ? (
+									<>
+										<Loader2 className="size-4 animate-spin" /> Sending order…
+									</>
+								) : (
+									<>
+										<Mail className="size-4" /> Place order
+									</>
+								)}
 							</Button>
 						)}
 						<p className="mt-3 text-center text-xs text-ink-faint">

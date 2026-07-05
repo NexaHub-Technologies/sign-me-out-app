@@ -16,7 +16,7 @@ import {
 } from "#/lib/order-options.ts";
 import { cn } from "#/lib/utils.ts";
 import { confirmMerchOrder } from "#/server/orders.ts";
-import { initMerchPayment } from "#/server/payments.ts";
+import { initMerchPayment, verifyMerchPayment } from "#/server/payments.ts";
 import { fetchSessionUser } from "#/server/session.ts";
 import { listMySpaces } from "#/server/spaces.ts";
 
@@ -106,9 +106,12 @@ function CustomizePage() {
 			const { default: PaystackPop } = await import("@paystack/inline-js");
 			const popup = new PaystackPop();
 			popup.resumeTransaction(accessCode, {
-				// 3. Payment confirmed — verify server-side, then send emails.
+				// 3. Payment confirmed — verify with Paystack, then send emails.
 				onSuccess: async () => {
 					try {
+						// Verify the payment with Paystack and mark order as paid.
+						await verifyMerchPayment({ data: { reference } });
+						// Now confirm the order: read from DB and send emails.
 						await confirmMerchOrder({ data: { reference } });
 						setPlaced({ reference, confirmationSent: true });
 					} catch (err) {

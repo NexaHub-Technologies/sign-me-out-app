@@ -4,7 +4,6 @@ import {
 	Check,
 	Coffee,
 	CupSoda,
-	KeyRound,
 	Shirt,
 	Sparkles,
 	Truck,
@@ -60,33 +59,6 @@ const garments = [
 	},
 ];
 
-/** A wristband silhouette — lucide has no match, so we draw a little band. */
-function WristbandIcon({ className }: { className?: string }) {
-	return (
-		<svg
-			viewBox="0 0 48 48"
-			className={className}
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="3"
-			aria-hidden="true"
-		>
-			<title>wristband</title>
-			<ellipse cx="24" cy="24" rx="17" ry="12" />
-			<rect
-				x="13"
-				y="19"
-				width="22"
-				height="10"
-				rx="2"
-				fill="currentColor"
-				stroke="none"
-				opacity="0.22"
-			/>
-		</svg>
-	);
-}
-
 const souvenirs: {
 	name: string;
 	tag: string;
@@ -107,20 +79,6 @@ const souvenirs: {
 		blurb: "Reusable tumbler with lid. Sip your sign-out anywhere.",
 		color: "var(--marker-blue)",
 		icon: CupSoda,
-	},
-	{
-		name: "Wristband",
-		tag: "New",
-		blurb: "Silicone wristband. Your class motto, right on your wrist.",
-		color: "var(--marker-pink)",
-		icon: WristbandIcon,
-	},
-	{
-		name: "Key chain",
-		tag: "Pocket-size",
-		blurb: "Acrylic keyring. A tiny piece of the board on your keys.",
-		color: "var(--marker-green-deep)",
-		icon: KeyRound,
 	},
 ];
 

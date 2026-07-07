@@ -4,8 +4,18 @@ import { ArrowRight, Check, Shirt, Sparkles, Truck } from "lucide-react";
 import { Badge } from "#/components/ui/badge.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { Card } from "#/components/ui/card.tsx";
+import { pageMeta } from "#/lib/seo.ts";
 
 export const Route = createFileRoute("/_marketing/wear")({
+	head: () => ({
+		meta: pageMeta({
+			title: "Wear your sign-out — Sign Me Out",
+			description:
+				"Your finished canvas, printed on tees, hoodies, totes, mugs and keepsakes you'll actually reach for. Pick a piece, choose a layout, and we'll deliver it.",
+			image: "/images/tee.png",
+			path: "/wear",
+		}),
+	}),
 	component: WearPage,
 });
 

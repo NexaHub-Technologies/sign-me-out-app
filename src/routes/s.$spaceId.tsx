@@ -23,17 +23,37 @@ import { ExportPicker } from "#/features/canvas/export-picker.tsx";
 import type { SignCanvasHandle } from "#/features/canvas/sign-canvas.tsx";
 import { GiftCard } from "#/features/gift/gift-card.tsx";
 import { BOARD_COLORS, boardColorById } from "#/lib/board-colors.ts";
+import { pageMeta } from "#/lib/seo.ts";
 import { cn } from "#/lib/utils.ts";
 import { getSpaceBySlug, lockSpace, setBoardColor } from "#/server/spaces.ts";
 
 const SignCanvas = lazy(() => import("#/features/canvas/sign-canvas.tsx"));
 
 export const Route = createFileRoute("/s/$spaceId")({
-	ssr: false,
+	// 'data-only': run the loader and render <head> on the server (so a shared
+	// /s/<slug> link unfurls with the board's title + mark count), but skip
+	// server-rendering the component — the Konva canvas is client-only.
+	ssr: "data-only",
 	loader: async ({ params }) => {
 		const data = await getSpaceBySlug({ data: params.spaceId });
 		if (!data) throw notFound();
 		return data;
+	},
+	head: ({ loaderData }) => {
+		if (!loaderData) return {};
+		const { space, marks } = loaderData;
+		const count = marks.length;
+		const signed =
+			count === 0
+				? "Be the first to sign."
+				: `${count} ${count === 1 ? "mark" : "marks"} so far — add yours.`;
+		return {
+			meta: pageMeta({
+				title: `${space.title} — Sign Me Out`,
+				description: `Leave a signature, doodle, photo or voice note on ${space.title}. ${signed}`,
+				path: `/s/${space.slug}`,
+			}),
+		};
 	},
 	component: SpacePage,
 	notFoundComponent: SpaceNotFound,

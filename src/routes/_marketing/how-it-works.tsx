@@ -9,8 +9,17 @@ import {
 
 import { Button } from "#/components/ui/button.tsx";
 import { Card } from "#/components/ui/card.tsx";
+import { pageMeta } from "#/lib/seo.ts";
 
 export const Route = createFileRoute("/_marketing/how-it-works")({
+	head: () => ({
+		meta: pageMeta({
+			title: "How it works — Sign Me Out",
+			description:
+				"From your last paper to a keepsake you can hold. See the whole journey: open a board, share one link, collect signatures and well-wishes, then print, save or wear it.",
+			path: "/how-it-works",
+		}),
+	}),
 	component: HowItWorksPage,
 });
 

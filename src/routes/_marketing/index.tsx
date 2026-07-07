@@ -14,9 +14,18 @@ import { Avatar, AvatarFallback } from "#/components/ui/avatar.tsx";
 import { Badge } from "#/components/ui/badge.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { Card } from "#/components/ui/card.tsx";
+import { pageMeta } from "#/lib/seo.ts";
 import { cn } from "#/lib/utils.ts";
 
 export const Route = createFileRoute("/_marketing/")({
+	head: () => ({
+		meta: pageMeta({
+			title: "Sign Me Out — your sign-out, signed by everyone",
+			description:
+				"Your sign-out only happens once. Open a sign-out canvas, share one link, and let coursemates, classmates and loved ones leave signatures, doodles, photos and voice notes.",
+			path: "/",
+		}),
+	}),
 	component: LandingPage,
 });
 

@@ -2,6 +2,7 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
+import { pageMeta } from "#/lib/seo.ts";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -14,14 +15,14 @@ export const Route = createRootRoute({
 				name: "viewport",
 				content: "width=device-width, initial-scale=1",
 			},
-			{
+			// Site-wide defaults (title + description + OG/Twitter). Deeper routes
+			// override these by re-emitting the same title / meta keys.
+			...pageMeta({
 				title: "Sign Me Out — your sign-out, signed by everyone",
-			},
-			{
-				name: "description",
-				content:
+				description:
 					"The last paper is done. Open a sign-out canvas, share one link, and let coursemates, classmates and loved ones leave signatures, doodles, photos and voice notes. Print it, save a PDF, or wear it.",
-			},
+				path: "/",
+			}),
 			{
 				name: "theme-color",
 				content: "#f6f8fc",

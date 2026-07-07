@@ -10,6 +10,7 @@ export type Product = {
 	group: "Wear" | "Souvenirs";
 	sizes: boolean;
 	priceKobo: number;
+	image: string;
 };
 
 export const PRODUCTS: Product[] = [
@@ -19,6 +20,7 @@ export const PRODUCTS: Product[] = [
 		group: "Wear",
 		sizes: true,
 		priceKobo: 1_200_000,
+		image: "/images/tee.png",
 	},
 	{
 		id: "hoodie",
@@ -26,6 +28,7 @@ export const PRODUCTS: Product[] = [
 		group: "Wear",
 		sizes: true,
 		priceKobo: 2_000_000,
+		image: "/images/hoodie.png",
 	},
 	{
 		id: "tote",
@@ -33,14 +36,23 @@ export const PRODUCTS: Product[] = [
 		group: "Wear",
 		sizes: false,
 		priceKobo: 1_000_000,
+		image: "/images/tote-bag.png",
 	},
-	{ id: "cap", name: "Cap", group: "Wear", sizes: false, priceKobo: 800_000 },
+	{
+		id: "cap",
+		name: "Cap",
+		group: "Wear",
+		sizes: false,
+		priceKobo: 800_000,
+		image: "/images/cap.png",
+	},
 	{
 		id: "framed",
 		name: "Framed print",
 		group: "Wear",
 		sizes: false,
 		priceKobo: 3_700_000,
+		image: "/images/framed.png",
 	},
 	{
 		id: "mug",
@@ -48,6 +60,7 @@ export const PRODUCTS: Product[] = [
 		group: "Souvenirs",
 		sizes: false,
 		priceKobo: 800_000,
+		image: "/images/mug.png",
 	},
 	{
 		id: "cup",
@@ -55,6 +68,7 @@ export const PRODUCTS: Product[] = [
 		group: "Souvenirs",
 		sizes: false,
 		priceKobo: 800_000,
+		image: "/images/fancy-cup.png",
 	},
 ];
 

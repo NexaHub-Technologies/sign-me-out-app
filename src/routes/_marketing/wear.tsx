@@ -1,14 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  Check,
-  Coffee,
-  CupSoda,
-  Shirt,
-  Sparkles,
-  Truck,
-} from "lucide-react";
-import type { ComponentType, CSSProperties } from "react";
+import { ArrowRight, Check, Shirt, Sparkles, Truck } from "lucide-react";
 
 import { Badge } from "#/components/ui/badge.tsx";
 import { Button } from "#/components/ui/button.tsx";
@@ -24,6 +15,7 @@ const garments = [
     tag: "Bestseller",
     blurb: "Soft heavyweight cotton. Your full canvas across the back.",
     shirt: "var(--marker-green-deep)",
+    image: "/images/tee.png",
   },
   {
     name: "Heavy hoodie",
@@ -31,18 +23,21 @@ const garments = [
     blurb:
       "Brushed fleece, kangaroo pocket. Big-print canvas, embroidered name.",
     shirt: "var(--marker-pink)",
+    image: "/images/hoodie.png",
   },
   {
     name: "Tote bag",
     tag: "Everyday",
     blurb: "Sturdy canvas tote. Carry your sign-out to the next chapter.",
     shirt: "var(--marker-amber)",
+    image: "/images/tote-bag.png",
   },
   {
     name: "Cap",
     tag: "New",
     blurb: "Embroidered six-panel. A small doodle, a big statement.",
     shirt: "var(--marker-green-deep)",
+    image: "/images/cap.png",
   },
   {
     name: "Framed print",
@@ -57,21 +52,21 @@ const souvenirs: {
   tag: string;
   blurb: string;
   color: string;
-  icon: ComponentType<{ className?: string }>;
+  image: string;
 }[] = [
   {
     name: "Mug",
     tag: "Bestseller",
     blurb: "Ceramic 11oz mug. Your canvas wrapped around your morning coffee.",
     color: "var(--marker-amber)",
-    icon: Coffee,
+    image: "/images/mug.png",
   },
   {
     name: "Travel cup",
     tag: "On the go",
     blurb: "Reusable tumbler with lid. Sip your sign-out anywhere.",
     color: "var(--marker-blue)",
-    icon: CupSoda,
+    image: "/images/fancy-cup.png",
   },
 ];
 
@@ -178,7 +173,15 @@ function WearPage() {
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {garments.map((p) => (
           <ProductCard key={p.name} name={p.name} tag={p.tag} blurb={p.blurb}>
-            <TeeMock color={p.shirt} />
+            {p.image ? (
+              <img
+                src={p.image}
+                alt={p.name}
+                className="h-44 w-auto object-contain"
+              />
+            ) : (
+              <TeeMock color={p.shirt} />
+            )}
           </ProductCard>
         ))}
       </div>
@@ -198,12 +201,11 @@ function WearPage() {
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {souvenirs.map((s) => (
             <ProductCard key={s.name} name={s.name} tag={s.tag} blurb={s.blurb}>
-              <span
-                className="grid size-24 place-items-center rounded-3xl bg-white shadow-sm"
-                style={{ color: s.color } as CSSProperties}
-              >
-                <s.icon className="size-12" />
-              </span>
+              <img
+                src={s.image}
+                alt={s.name}
+                className="size-24 object-contain"
+              />
             </ProductCard>
           ))}
         </div>

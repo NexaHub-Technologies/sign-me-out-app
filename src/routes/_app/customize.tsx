@@ -401,27 +401,25 @@ function CustomizePage() {
 				<div className="lg:sticky lg:top-24 lg:self-start">
 					<div className="paper-card rounded-3xl p-6">
 						<p className="kicker">Your order</p>
-						<div className="mt-4 flex items-center gap-3">
-							<div className="grid size-16 shrink-0 place-items-center rounded-2xl border border-line bg-paper-2/70 p-1.5">
-								<img
-									src={product.image}
-									alt={product.name}
-									className="max-h-full max-w-full object-contain"
+						<div className="mt-4 grid h-48 place-items-center rounded-2xl border border-line bg-paper-2/70 p-5">
+							<img
+								src={product.image}
+								alt={product.name}
+								className="max-h-full max-w-full object-contain"
+							/>
+						</div>
+						<div className="mt-4">
+							<p className="font-display text-lg font-bold text-ink">
+								{product.name}
+							</p>
+							<p className="mt-1 flex items-center gap-1.5 text-sm text-ink-soft">
+								<span
+									className="size-3 shrink-0 rounded-full border border-line"
+									style={{ backgroundColor: colour.swatch }}
 								/>
-							</div>
-							<div>
-								<p className="font-display text-lg font-bold text-ink">
-									{product.name}
-								</p>
-								<p className="flex items-center gap-1.5 text-sm text-ink-soft">
-									<span
-										className="size-3 shrink-0 rounded-full border border-line"
-										style={{ backgroundColor: colour.swatch }}
-									/>
-									{colour.label}
-									{product.sizes ? ` · Size ${size}` : ""} · Qty {qty}
-								</p>
-							</div>
+								{colour.label}
+								{product.sizes ? ` · Size ${size}` : ""} · Qty {qty}
+							</p>
 						</div>
 
 						<dl className="mt-5 flex flex-col gap-2 text-sm">

@@ -76,20 +76,20 @@ function ProductCard({
 	name,
 	tag,
 	blurb,
-	children,
+	image,
 }: {
 	name: string;
 	tag: string;
 	blurb: string;
-	children: React.ReactNode;
+	image: string;
 }) {
 	return (
 		<Card className="feature-card overflow-hidden border-0 p-0 shadow-none">
-			<div className="relative flex h-56 items-center justify-center bg-paper-2/70 p-4">
+			<div className="relative aspect-[4/3] overflow-hidden bg-paper-2/70">
 				<Badge className="absolute left-4 top-4 z-10 rounded-full bg-ink text-[10px] uppercase tracking-wide text-paper">
 					{tag}
 				</Badge>
-				{children}
+				<img src={image} alt={name} className="h-full w-full object-cover" />
 			</div>
 			<div className="p-5">
 				<h2 className="font-display text-lg font-bold text-ink">{name}</h2>
@@ -132,13 +132,13 @@ function WearPage() {
 
 			<div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 				{garments.map((p) => (
-					<ProductCard key={p.name} name={p.name} tag={p.tag} blurb={p.blurb}>
-						<img
-							src={p.image}
-							alt={p.name}
-							className="max-h-full max-w-full object-contain"
-						/>
-					</ProductCard>
+					<ProductCard
+						key={p.name}
+						name={p.name}
+						tag={p.tag}
+						blurb={p.blurb}
+						image={p.image}
+					/>
 				))}
 			</div>
 
@@ -156,13 +156,13 @@ function WearPage() {
 
 				<div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 					{souvenirs.map((s) => (
-						<ProductCard key={s.name} name={s.name} tag={s.tag} blurb={s.blurb}>
-							<img
-								src={s.image}
-								alt={s.name}
-								className="max-h-full max-w-full object-contain"
-							/>
-						</ProductCard>
+						<ProductCard
+							key={s.name}
+							name={s.name}
+							tag={s.tag}
+							blurb={s.blurb}
+							image={s.image}
+						/>
 					))}
 				</div>
 			</section>

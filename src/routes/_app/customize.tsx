@@ -401,7 +401,7 @@ function CustomizePage() {
 				<div className="lg:sticky lg:top-24 lg:self-start">
 					<div className="paper-card rounded-3xl p-6">
 						<p className="kicker">Your order</p>
-						<div className="mt-4 grid h-48 place-items-center rounded-2xl border border-line bg-paper-2/70 p-5">
+						<div className="mt-4 flex h-48 items-center justify-center overflow-hidden rounded-2xl border border-line bg-paper-2/70 p-5">
 							<img
 								src={product.image}
 								alt={product.name}

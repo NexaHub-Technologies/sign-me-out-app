@@ -171,6 +171,28 @@ export const merchOrders = pgTable(
 	],
 ).enableRLS();
 
+/**
+ * User feedback from the floating feedback pill. Anonymous submissions are
+ * allowed; the session identity is attached server-side when present. Fully
+ * server-only (like payments): RLS enabled with no policies.
+ */
+export const feedback = pgTable(
+	"feedback",
+	{
+		id: uuid().defaultRandom().primaryKey().notNull(),
+		category: text().notNull(), // 'bug' | 'idea' | 'love' | 'other'
+		message: text().notNull(),
+		email: text(), // optional reply-to typed by the submitter
+		userId: uuid("user_id"), // session user, when signed in
+		userEmail: text("user_email"), // session email snapshot
+		path: text(), // page the feedback was sent from
+		createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [index("feedback_created_idx").on(table.createdAt)],
+).enableRLS();
+
 /** Signer profile, mirrored from auth.users via a trigger (see init-policies.sql). */
 export const profiles = pgTable("profiles", {
 	id: uuid().primaryKey().notNull(),

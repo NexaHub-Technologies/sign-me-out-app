@@ -28,6 +28,10 @@ create policy "profiles_select" on public.profiles
 -- with NO policies, so anon/authenticated clients can neither read nor write it.
 alter table public.payments enable row level security;
 
+-- feedback is fully server-only too (written via the feedback server fn).
+-- RLS enabled with NO policies — clients can neither read nor write it.
+alter table public.feedback enable row level security;
+
 -- ---- Realtime: stream marks changes to subscribed clients ------------------
 do $$
 begin

@@ -1,7 +1,13 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import {
+	createRootRoute,
+	HeadContent,
+	Outlet,
+	Scripts,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
+import { FeedbackFab } from "#/features/feedback/feedback-fab.tsx";
 import { pageMeta } from "#/lib/seo.ts";
 import appCss from "../styles.css?url";
 
@@ -41,7 +47,19 @@ export const Route = createRootRoute({
 		],
 	}),
 	shellComponent: RootDocument,
+	component: RootComponent,
 });
+
+// Inside router context (unlike the document shell), so the feedback pill can
+// read the current route and dodge the canvas tool dock.
+function RootComponent() {
+	return (
+		<>
+			<Outlet />
+			<FeedbackFab />
+		</>
+	);
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
@@ -53,7 +71,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				{children}
 				<TanStackDevtools
 					config={{
-						position: "bottom-right",
+						// bottom-right belongs to the feedback pill
+						position: "bottom-left",
 					}}
 					plugins={[
 						{

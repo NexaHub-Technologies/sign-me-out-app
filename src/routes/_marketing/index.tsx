@@ -554,64 +554,27 @@ function HowItWorks() {
 	);
 }
 
-/* --- wear it --- */
+/* --- wear it: real product mockups, same banner treatment as the wear page --- */
 const garments = [
 	{
 		name: "Sign-out tee",
 		tag: "Bestseller",
-		shirt: "var(--marker-green-deep)",
+		image: "/images/tee.png",
 		rot: -2,
 	},
 	{
 		name: "Heavy hoodie",
 		tag: "Warm",
-		shirt: "var(--marker-pink)",
+		image: "/images/hoodie.png",
 		rot: 1.5,
 	},
 	{
 		name: "Souvenirs",
 		tag: "Classic",
-		shirt: "var(--marker-blue)",
+		image: "/images/mug.png",
 		rot: -1.5,
 	},
 ];
-
-function TeeMock({ color }: { color: string }) {
-	return (
-		<svg viewBox="0 0 200 200" className="h-40 w-auto" aria-hidden="true">
-			<title>garment</title>
-			<path
-				d="M64 36 40 50 26 86l22 12 8-14v82h88V84l8 14 22-12-14-36-24-14-10 6a26 16 0 0 1-52 0z"
-				fill={color}
-				opacity="0.92"
-			/>
-			{/* a little signed canvas printed on the chest */}
-			<rect
-				x="78"
-				y="92"
-				width="44"
-				height="52"
-				rx="4"
-				fill="#fff"
-				opacity="0.95"
-			/>
-			<path
-				d="M84 104c6-2 8 8 12 6s4-10 8-10"
-				stroke={color}
-				strokeWidth="2.4"
-				fill="none"
-				strokeLinecap="round"
-			/>
-			<path
-				d="M86 122h28M86 132h20"
-				stroke={color}
-				strokeWidth="2.4"
-				strokeLinecap="round"
-				opacity="0.6"
-			/>
-		</svg>
-	);
-}
 
 function PricingSection() {
 	return (
@@ -756,11 +719,16 @@ function WearSection() {
 							className="feature-card wiggle overflow-hidden border-0 p-0 shadow-none"
 							style={{ "--rot": `${g.rot}deg` } as CSSProperties}
 						>
-							<div className="relative grid place-items-center bg-paper-2/70 pt-6 pb-2">
-								<Badge className="absolute left-3 top-3 rounded-full bg-ink text-[10px] uppercase tracking-wide text-paper">
+							<div className="relative aspect-[4/3] overflow-hidden bg-paper-2/70">
+								<Badge className="absolute left-3 top-3 z-10 rounded-full bg-ink text-[10px] uppercase tracking-wide text-paper">
 									{g.tag}
 								</Badge>
-								<TeeMock color={g.shirt} />
+								<img
+									src={g.image}
+									alt={g.name}
+									loading="lazy"
+									className="h-full w-full object-cover"
+								/>
 							</div>
 							<div className="px-4 pb-4">
 								<span className="font-display font-bold text-ink">

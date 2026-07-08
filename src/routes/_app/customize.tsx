@@ -15,8 +15,8 @@ import {
 	SIZES,
 } from "#/lib/order-options.ts";
 import { cn } from "#/lib/utils.ts";
-import { confirmMerchOrder } from "#/server/orders.ts";
-import { initMerchPayment, verifyMerchPayment } from "#/server/payments.ts";
+import { placeMerchOrder } from "#/server/orders.ts";
+import { initMerchPayment } from "#/server/payments.ts";
 import { fetchSessionUser } from "#/server/session.ts";
 import { listMySpaces } from "#/server/spaces.ts";
 
@@ -85,35 +85,42 @@ function CustomizePage() {
 		setSubmitting(true);
 
 		try {
+			// The order details are built once and reused: sent to start the
+			// transaction, then again to record the paid order on success (nothing
+			// is written to the DB until the payment is verified).
+			const details = {
+				productId,
+				qty,
+				size: product.sizes ? size : "",
+				colourId,
+				personalisation,
+				boardRef: `${board.title} (${window.location.origin}/s/${board.slug})`,
+				name: name.trim(),
+				email: email.trim(),
+				phone: phone.trim(),
+				address: address.trim(),
+				notes: notes.trim(),
+			};
+
 			// 1. Start the Paystack transaction server-side (amount calculated from product price × qty).
 			const { accessCode, reference } = await initMerchPayment({
-				data: {
-					productId,
-					qty,
-					size: product.sizes ? size : "",
-					colourId,
-					personalisation,
-					boardRef: `${board.title} (${window.location.origin}/s/${board.slug})`,
-					name: name.trim(),
-					email: email.trim(),
-					phone: phone.trim(),
-					address: address.trim(),
-					notes: notes.trim(),
-				},
+				data: details,
 			});
 
 			// 2. Open the Paystack popup. Imported lazily so SSR never touches it.
 			const { default: PaystackPop } = await import("@paystack/inline-js");
 			const popup = new PaystackPop();
 			popup.resumeTransaction(accessCode, {
-				// 3. Payment confirmed — verify with Paystack, then send emails.
+				// 3. Payment confirmed — verify, record the paid order, send emails.
 				onSuccess: async () => {
 					try {
-						// Verify the payment with Paystack and mark order as paid.
-						await verifyMerchPayment({ data: { reference } });
-						// Now confirm the order: read from DB and send emails.
-						await confirmMerchOrder({ data: { reference } });
-						setPlaced({ reference, confirmationSent: true });
+						const res = await placeMerchOrder({
+							data: { reference, ...details },
+						});
+						setPlaced({
+							reference: res.reference,
+							confirmationSent: res.confirmationSent,
+						});
 					} catch (err) {
 						setError(
 							err instanceof Error

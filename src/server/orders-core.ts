@@ -295,8 +295,8 @@ function merchConfirmationHtml(
 
 /**
  * Read a paid merchandise order from the DB and send fulfilment + confirmation
- * emails. The order must already have `status = 'paid'` (set by
- * `assertMerchPaymentPaid`). Safe to call more than once — emails use
+ * emails. The order must already have `status = 'paid'` (recorded by
+ * `recordPaidMerchOrder`). Safe to call more than once — emails use
  * idempotency keys.
  */
 export async function deliverMerchOrderEmails(

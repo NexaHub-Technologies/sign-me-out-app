@@ -59,7 +59,7 @@ export const createSpace = createServerFn({ method: "POST" })
 		// completed ₦1,000 payment that hasn't already been used for a space.
 		const user = await getSessionUser();
 		if (!user) throw new Error("Sign in to open a space");
-		await assertSpacePaymentPaid(data.paymentReference, user.id);
+		await assertSpacePaymentPaid(data.paymentReference, user);
 
 		const hostToken = ensureHostToken();
 		const [space] = await db

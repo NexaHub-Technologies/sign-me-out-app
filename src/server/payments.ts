@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import {
-	assertMerchPaymentPaid,
 	createMerchPayment,
 	createSpacePayment,
 } from "#/server/payments-core.ts";
@@ -35,19 +34,4 @@ export const initMerchPayment = createServerFn({ method: "POST" })
 			notes: string;
 		}) => data,
 	)
-	.handler(async ({ data }) =>
-		createMerchPayment(data.productId, data.qty, data),
-	);
-
-/**
- * Verify a completed merchandise payment with Paystack. Called after the popup
- * succeeds to confirm the money landed before we place the order.
- */
-export const verifyMerchPayment = createServerFn({ method: "POST" })
-	.validator((data: { reference: string }) => data)
-	.handler(async ({ data }) => {
-		const { getSessionUser } = await import("#/server/auth.ts");
-		const user = await getSessionUser();
-		if (!user) throw new Error("Sign in to verify payment");
-		await assertMerchPaymentPaid(data.reference, user.id);
-	});
+	.handler(async ({ data }) => createMerchPayment(data.productId, data.qty));

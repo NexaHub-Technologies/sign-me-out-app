@@ -3,7 +3,7 @@ import { and, asc, count, countDistinct, desc, eq, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 import { db } from "#/db/index.ts";
-import { marks, payments, signSpaces } from "#/db/schema.ts";
+import { markReactions, marks, payments, signSpaces } from "#/db/schema.ts";
 import { BOARD_COLOR_IDS } from "#/lib/board-colors.ts";
 import { type GiftInput, normalizeGift } from "#/lib/gift.ts";
 import {
@@ -137,9 +137,35 @@ export const getSpaceBySlug = createServerFn({ method: "GET" })
 
 		const user = await getSessionUser();
 		const isHost = isSpaceHost(space, user);
+
+		// Reaction counts per mark, plus which marks this viewer has reacted to
+		// (so their hearts show as filled). Realtime keeps both live after load.
+		const reactionRows = await db
+			.select({ markId: markReactions.markId, count: count(markReactions.id) })
+			.from(markReactions)
+			.where(eq(markReactions.spaceId, space.id))
+			.groupBy(markReactions.markId);
+		const reactions = reactionRows.map((r) => ({
+			markId: r.markId,
+			count: r.count,
+		}));
+		const myReactions = user
+			? (
+					await db
+						.select({ markId: markReactions.markId })
+						.from(markReactions)
+						.where(
+							and(
+								eq(markReactions.spaceId, space.id),
+								eq(markReactions.userId, user.id),
+							),
+						)
+				).map((r) => r.markId)
+			: [];
+
 		// host_token is a secret — never ship it to the client.
 		const { hostToken: _omit, ...publicSpace } = space;
-		return { space: publicSpace, marks: items, isHost };
+		return { space: publicSpace, marks: items, isHost, reactions, myReactions };
 	});
 
 export const lockSpace = createServerFn({ method: "POST" })

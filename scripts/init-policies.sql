@@ -22,6 +22,10 @@ drop policy if exists "profiles_select" on public.profiles;
 create policy "profiles_select" on public.profiles
   for select to anon, authenticated using (true);
 
+drop policy if exists "mark_reactions_select" on public.mark_reactions;
+create policy "mark_reactions_select" on public.mark_reactions
+  for select to anon, authenticated using (true);
+
 -- No INSERT/UPDATE/DELETE policies: all writes happen server-side via Drizzle.
 
 -- payments is fully server-only (created/verified via Drizzle). RLS is enabled
@@ -41,6 +45,21 @@ begin
       and schemaname = 'public' and tablename = 'marks'
   ) then
     alter publication supabase_realtime add table public.marks;
+  end if;
+end $$;
+
+-- ---- Realtime: stream reaction changes -------------------------------------
+-- REPLICA IDENTITY FULL so DELETE payloads carry mark_id/user_id (default is
+-- primary key only), letting clients know which mark to decrement.
+alter table public.mark_reactions replica identity full;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public' and tablename = 'mark_reactions'
+  ) then
+    alter publication supabase_realtime add table public.mark_reactions;
   end if;
 end $$;
 

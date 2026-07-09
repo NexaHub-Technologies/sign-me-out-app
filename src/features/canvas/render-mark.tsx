@@ -329,3 +329,75 @@ function VoiceMark({
 		</Group>
 	);
 }
+
+/**
+ * A small ❤️ pill anchored just above a mark's origin. Shows a filled heart when
+ * the viewer has reacted and the count when there's at least one. Interactive
+ * only in Move mode (`interactive`), so it doesn't swallow drawing gestures in
+ * the pen/text/voice tools — it renders as a passive badge then.
+ */
+export function ReactionBadge({
+	mark,
+	count,
+	mine,
+	interactive,
+	onToggle,
+}: {
+	mark: Mark;
+	count: number;
+	mine: boolean;
+	interactive: boolean;
+	onToggle: (id: string) => void;
+}) {
+	const has = count > 0;
+	// Hide the badge entirely when there's nothing to show and you can't tap it,
+	// so passive (drawing) mode stays uncluttered.
+	if (!has && !interactive) return null;
+
+	function tap(e: KonvaEventObject<Event>) {
+		e.cancelBubble = true; // react — don't also select/pan the board
+		onToggle(mark.id);
+	}
+
+	return (
+		<Group
+			x={mark.x}
+			y={mark.y}
+			offsetY={26}
+			listening={interactive}
+			onClick={interactive ? tap : undefined}
+			onTap={interactive ? tap : undefined}
+		>
+			<Rect
+				width={has ? 44 : 28}
+				height={24}
+				cornerRadius={12}
+				fill="#ffffff"
+				stroke="rgba(27,27,25,0.12)"
+				strokeWidth={1}
+				shadowColor="rgba(27,27,25,0.2)"
+				shadowBlur={6}
+				shadowOffsetY={2}
+				opacity={has || mine ? 1 : 0.82}
+			/>
+			<Text
+				text="♥"
+				x={8}
+				y={4}
+				fontSize={15}
+				fill={mine ? "#e84b7a" : "#c9c6bd"}
+			/>
+			{has && (
+				<Text
+					text={String(count)}
+					x={26}
+					y={5}
+					fontSize={13}
+					fontStyle="600"
+					fontFamily="Manrope, sans-serif"
+					fill="#56544c"
+				/>
+			)}
+		</Group>
+	);
+}

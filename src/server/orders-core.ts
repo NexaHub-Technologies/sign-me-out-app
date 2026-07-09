@@ -29,10 +29,10 @@ export const ORDER_INBOX =
  * the default `resend.dev` sandbox address only delivers to the Resend
  * account's own email.
  */
-const FROM =
+export const FROM =
 	process.env.ORDER_FROM_EMAIL || "Sign Me Out <onboarding@resend.dev>";
 
-function resendClient(): Resend {
+export function resendClient(): Resend {
 	const key = process.env.RESEND_API_KEY;
 	if (!key) {
 		// Config problem, not the buyer's — keep the detail out of their error.
@@ -186,7 +186,11 @@ function orderText(order: ValidOrder, reference: string): string {
 }
 
 /** Shared shell: paper card on ink-soft background, scrawl header accent. */
-function emailShell(heading: string, lede: string, inner: string): string {
+export function emailShell(
+	heading: string,
+	lede: string,
+	inner: string,
+): string {
 	return `<div style="margin:0;padding:32px 16px;background:#f1efe8;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#1b1b19;">
 	<div style="max-width:560px;margin:0 auto;background:#f6f8fc;border:1px solid #dbe4f0;border-radius:16px;padding:32px;">
 		<p style="margin:0;font-family:'Segoe Script','Comic Sans MS',cursive;font-size:20px;color:#1d4ed8;transform:rotate(-2deg);">Sign Me Out</p>

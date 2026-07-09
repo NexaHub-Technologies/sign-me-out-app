@@ -41,6 +41,7 @@ import {
 } from "#/features/canvas/types.ts";
 import { useRealtimeMarks } from "#/features/canvas/use-realtime-marks.ts";
 import { useRealtimeReactions } from "#/features/canvas/use-realtime-reactions.ts";
+import { SealedBanner } from "#/features/reveal/sealed-banner.tsx";
 import { cn } from "#/lib/utils.ts";
 import {
 	type AddMarkInput,
@@ -94,11 +95,18 @@ type RedoEntry =
 	| { id: string; kind: "remove"; markId: string };
 
 export type SignCanvasProps = {
-	space: { id: string; slug: string; status: string };
+	space: {
+		id: string;
+		slug: string;
+		status: string;
+		revealAt: string | null;
+	};
 	initialMarks: Mark[];
 	isHost: boolean;
 	initialReactions: { markId: string; count: number }[];
 	initialMyReactions: string[];
+	/** True for a non-host viewing a still-sealed capsule (board withheld). */
+	sealed: boolean;
 };
 
 export type SignCanvasHandle = {
@@ -107,7 +115,14 @@ export type SignCanvasHandle = {
 
 const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 	function SignCanvas(
-		{ space, initialMarks, isHost, initialReactions, initialMyReactions },
+		{
+			space,
+			initialMarks,
+			isHost,
+			initialReactions,
+			initialMyReactions,
+			sealed,
+		},
 		ref,
 	) {
 		const wrapRef = useRef<HTMLDivElement>(null);
@@ -149,12 +164,15 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 
 		const { user, ready } = useSessionUser();
 		const { marks, count, upsert, remove } = useMarksStore(initialMarks);
-		useRealtimeMarks(space.id, upsert, remove);
+		// A sealed capsule mustn't stream other people's marks/reactions to a
+		// signer — keep both subscriptions off until it opens.
+		useRealtimeMarks(space.id, upsert, remove, !sealed);
 		const reactions = useRealtimeReactions(
 			space.id,
 			initialReactions,
 			initialMyReactions,
 			user?.id ?? null,
+			!sealed,
 		);
 		const locked = space.status === "locked";
 		const needsAuth = ready && !user;
@@ -890,6 +908,12 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 						This space is locked — signing is closed.
 					</div>
 				)}
+
+				{space.revealAt &&
+					new Date(space.revealAt).getTime() > Date.now() &&
+					(sealed || isHost) && (
+						<SealedBanner revealAt={space.revealAt} hostPreview={isHost} />
+					)}
 
 				{count === 0 && !draft && (
 					<div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center">

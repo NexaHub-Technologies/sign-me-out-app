@@ -43,9 +43,10 @@ export function useRealtimeMarks(
 	spaceId: string,
 	upsert: (m: Mark) => void,
 	remove: (id: string) => void,
+	enabled = true,
 ) {
 	useEffect(() => {
-		if (!isSupabaseConfigured()) return;
+		if (!enabled || !isSupabaseConfigured()) return;
 		const supabase = getSupabaseBrowserClient();
 		const channel = supabase
 			.channel(`marks:${spaceId}`)
@@ -72,5 +73,5 @@ export function useRealtimeMarks(
 		return () => {
 			supabase.removeChannel(channel);
 		};
-	}, [spaceId, upsert, remove]);
+	}, [spaceId, upsert, remove, enabled]);
 }

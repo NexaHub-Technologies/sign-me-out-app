@@ -39,12 +39,20 @@ function CreatePage() {
 	const [templateId, setTemplateId] = useState(DEFAULT_TEMPLATE.id);
 	const [color, setColor] = useState(DEFAULT_TEMPLATE.boardColor);
 	const [note, setNote] = useState(DEFAULT_TEMPLATE.defaultNote);
+	const [revealAt, setRevealAt] = useState("");
 	const [giftOpen, setGiftOpen] = useState(false);
 	const [gift, setGift] = useState<GiftFormValue>(EMPTY_GIFT);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const tpl = templateById(templateId);
+	// Soft floor for the capsule picker: "now" in local wall-clock (the server
+	// re-checks that the reveal is actually in the future).
+	const minReveal = new Date(
+		Date.now() - new Date().getTimezoneOffset() * 60000,
+	)
+		.toISOString()
+		.slice(0, 16);
 
 	// Picking an occasion seeds the board colour and the note; the title is left
 	// to the host (we only swap its placeholder).
@@ -93,6 +101,7 @@ function CreatePage() {
 								boardColor: color,
 								gift: giftInput ?? undefined,
 								paymentReference: reference,
+								revealAt: revealAt || undefined,
 							},
 						});
 						navigate({ to: "/s/$spaceId", params: { spaceId: slug } });
@@ -238,6 +247,34 @@ function CreatePage() {
 							</p>
 						</div>
 					)}
+				</div>
+
+				<div className="rounded-2xl border border-line bg-card/60 p-4">
+					<div className="flex items-start gap-3">
+						<span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-marker-blue/10 text-marker-blue-deep">
+							<Lock className="size-5" />
+						</span>
+						<div className="min-w-0 flex-1">
+							<Label htmlFor="revealAt" className="font-medium text-ink">
+								Seal as a time capsule{" "}
+								<span className="text-ink-faint">(optional)</span>
+							</Label>
+							<p className="mt-0.5 text-sm text-ink-soft">
+								People can still sign, but the board stays hidden behind a
+								countdown until the date you pick — then it opens and everyone
+								who signed gets an email.
+							</p>
+							<Input
+								id="revealAt"
+								name="revealAt"
+								type="datetime-local"
+								value={revealAt}
+								min={minReveal}
+								onChange={(e) => setRevealAt(e.target.value)}
+								className="mt-3 h-11 bg-card"
+							/>
+						</div>
+					</div>
 				</div>
 
 				{error && (

@@ -25,6 +25,7 @@ export function useRealtimeReactions(
 	initialCounts: { markId: string; count: number }[],
 	initialMine: string[],
 	viewerId: string | null,
+	enabled = true,
 ): ReactionState {
 	const [state, setState] = useState<ReactionState>(() => ({
 		counts: new Map(initialCounts.map((r) => [r.markId, r.count])),
@@ -32,7 +33,7 @@ export function useRealtimeReactions(
 	}));
 
 	useEffect(() => {
-		if (!isSupabaseConfigured()) return;
+		if (!enabled || !isSupabaseConfigured()) return;
 		const supabase = getSupabaseBrowserClient();
 		const channel = supabase
 			.channel(`reactions:${spaceId}`)
@@ -71,7 +72,7 @@ export function useRealtimeReactions(
 		return () => {
 			supabase.removeChannel(channel);
 		};
-	}, [spaceId, viewerId]);
+	}, [spaceId, viewerId, enabled]);
 
 	return state;
 }

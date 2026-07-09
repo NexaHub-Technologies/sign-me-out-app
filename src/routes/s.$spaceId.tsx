@@ -53,7 +53,7 @@ export const Route = createFileRoute("/s/$spaceId")({
 });
 
 function SpacePage() {
-	const { space, marks, isHost, reactions, myReactions } =
+	const { space, marks, isHost, reactions, myReactions, sealed } =
 		Route.useLoaderData();
 	const router = useRouter();
 	const [shareOpen, setShareOpen] = useState(false);
@@ -168,11 +168,17 @@ function SpacePage() {
 					{() => (
 						<SignCanvas
 							ref={canvasRef}
-							space={{ id: space.id, slug: space.slug, status: space.status }}
+							space={{
+								id: space.id,
+								slug: space.slug,
+								status: space.status,
+								revealAt: space.revealAt,
+							}}
 							initialMarks={marks}
 							isHost={isHost}
 							initialReactions={reactions}
 							initialMyReactions={myReactions}
+							sealed={sealed}
 						/>
 					)}
 				</ClientOnly>

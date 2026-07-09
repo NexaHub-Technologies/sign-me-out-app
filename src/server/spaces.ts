@@ -16,6 +16,7 @@ import {
 	assertSpacePaymentPaid,
 	consumeSpacePayment,
 } from "#/server/payments-core.ts";
+import { isSealed, maybeRevealSpace } from "#/server/reveal-core.ts";
 import { deleteSpaceMedia } from "#/server/storage.ts";
 
 function slugify(title: string) {
@@ -36,6 +37,7 @@ export const createSpace = createServerFn({ method: "POST" })
 			boardColor?: string;
 			gift?: GiftInput;
 			paymentReference: string;
+			revealAt?: string;
 		}) => {
 			const title = input.title?.trim();
 			if (!title) throw new Error("A space name is required");
@@ -44,12 +46,25 @@ export const createSpace = createServerFn({ method: "POST" })
 			const boardColor = BOARD_COLOR_IDS.includes(input.boardColor ?? "")
 				? (input.boardColor as string)
 				: "paper";
+			// Optional time-capsule reveal: must parse and be in the future.
+			let revealAt: string | null = null;
+			if (input.revealAt) {
+				const when = new Date(input.revealAt);
+				if (Number.isNaN(when.getTime())) {
+					throw new Error("Reveal date is invalid");
+				}
+				if (when.getTime() <= Date.now()) {
+					throw new Error("Reveal date must be in the future");
+				}
+				revealAt = when.toISOString();
+			}
 			return {
 				title,
 				note: input.note?.trim() || null,
 				boardColor,
 				gift: normalizeGift(input.gift ?? {}),
 				paymentReference,
+				revealAt,
 			};
 		},
 	)
@@ -72,6 +87,7 @@ export const createSpace = createServerFn({ method: "POST" })
 				giftBankName: data.gift?.bankName ?? null,
 				giftAccountNumber: data.gift?.accountNumber ?? null,
 				giftAccountName: data.gift?.accountName ?? null,
+				revealAt: data.revealAt,
 				hostToken,
 				ownerId: user.id,
 			})
@@ -129,14 +145,33 @@ export const getSpaceBySlug = createServerFn({ method: "GET" })
 			.limit(1);
 		if (!space) return null;
 
+		const user = await getSessionUser();
+		const isHost = isSpaceHost(space, user);
+
+		// If this is a capsule whose time has come, open it + email signers once.
+		await maybeRevealSpace(space);
+
+		// host_token is a secret — never ship it to the client.
+		const { hostToken: _omit, ...publicSpace } = space;
+
+		// Sealed capsule (non-host, reveal still in the future): withhold the
+		// board. Signing still works — the client shows a countdown, not marks.
+		if (!isHost && isSealed(space)) {
+			return {
+				space: publicSpace,
+				marks: [],
+				isHost,
+				reactions: [],
+				myReactions: [],
+				sealed: true as const,
+			};
+		}
+
 		const items = await db
 			.select()
 			.from(marks)
 			.where(and(eq(marks.spaceId, space.id), eq(marks.status, "visible")))
 			.orderBy(asc(marks.z), asc(marks.createdAt));
-
-		const user = await getSessionUser();
-		const isHost = isSpaceHost(space, user);
 
 		// Reaction counts per mark, plus which marks this viewer has reacted to
 		// (so their hearts show as filled). Realtime keeps both live after load.
@@ -163,9 +198,14 @@ export const getSpaceBySlug = createServerFn({ method: "GET" })
 				).map((r) => r.markId)
 			: [];
 
-		// host_token is a secret — never ship it to the client.
-		const { hostToken: _omit, ...publicSpace } = space;
-		return { space: publicSpace, marks: items, isHost, reactions, myReactions };
+		return {
+			space: publicSpace,
+			marks: items,
+			isHost,
+			reactions,
+			myReactions,
+			sealed: false as const,
+		};
 	});
 
 export const lockSpace = createServerFn({ method: "POST" })

@@ -33,6 +33,15 @@ export const signSpaces = pgTable(
 		// across devices. Null for spaces created by a cookie-only (anonymous) host.
 		ownerId: uuid("owner_id"),
 		status: text().default("open").notNull(), // 'open' | 'locked'
+		// Time-capsule: while reveal_at is in the future, non-hosts see a countdown
+		// (they can still sign, but the board stays sealed). Null = not a capsule.
+		// revealed_at is stamped once, the first time a read happens at/after
+		// reveal_at, so the "it's open!" email blast fires exactly once.
+		revealAt: timestamp("reveal_at", { withTimezone: true, mode: "string" }),
+		revealedAt: timestamp("revealed_at", {
+			withTimezone: true,
+			mode: "string",
+		}),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
 			.defaultNow()
 			.notNull(),

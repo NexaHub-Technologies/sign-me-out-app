@@ -13,6 +13,11 @@ import { Label } from "#/components/ui/label.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { BOARD_COLORS, boardColorById } from "#/lib/board-colors.ts";
 import { normalizeGift } from "#/lib/gift.ts";
+import {
+	DEFAULT_TEMPLATE,
+	SPACE_TEMPLATES,
+	templateById,
+} from "#/lib/space-templates.ts";
 import { cn } from "#/lib/utils.ts";
 import { initSpacePayment } from "#/server/payments.ts";
 import { fetchSessionUser } from "#/server/session.ts";
@@ -31,18 +36,30 @@ export const Route = createFileRoute("/_app/create")({
 
 function CreatePage() {
 	const navigate = useNavigate();
-	const [color, setColor] = useState("paper");
+	const [templateId, setTemplateId] = useState(DEFAULT_TEMPLATE.id);
+	const [color, setColor] = useState(DEFAULT_TEMPLATE.boardColor);
+	const [note, setNote] = useState(DEFAULT_TEMPLATE.defaultNote);
 	const [giftOpen, setGiftOpen] = useState(false);
 	const [gift, setGift] = useState<GiftFormValue>(EMPTY_GIFT);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+
+	const tpl = templateById(templateId);
+
+	// Picking an occasion seeds the board colour and the note; the title is left
+	// to the host (we only swap its placeholder).
+	function pickTemplate(id: string) {
+		const t = templateById(id);
+		setTemplateId(id);
+		setColor(t.boardColor);
+		setNote(t.defaultNote);
+	}
 
 	async function onSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setError(null);
 		const form = new FormData(e.currentTarget);
 		const title = String(form.get("title") ?? "").trim();
-		const note = String(form.get("note") ?? "");
 		if (!title) {
 			setError("A space name is required");
 			return;
@@ -114,13 +131,38 @@ function CreatePage() {
 			</p>
 
 			<form onSubmit={onSubmit} className="mt-10 flex flex-col gap-7">
+				<fieldset className="flex flex-col gap-3">
+					<legend className="mb-1 text-sm font-medium text-ink">
+						What's the occasion?
+					</legend>
+					<div className="flex flex-wrap gap-2.5">
+						{SPACE_TEMPLATES.map((t) => (
+							<button
+								key={t.id}
+								type="button"
+								onClick={() => pickTemplate(t.id)}
+								aria-pressed={templateId === t.id}
+								className={cn(
+									"rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+									templateId === t.id
+										? "border-marker-blue bg-marker-blue-deep/[0.06] text-ink"
+										: "border-line bg-card text-ink-soft hover:border-line-strong",
+								)}
+							>
+								<span className="mr-1.5">{t.emoji}</span>
+								{t.label}
+							</button>
+						))}
+					</div>
+				</fieldset>
+
 				<div className="flex flex-col gap-2">
 					<Label htmlFor="title">Space name</Label>
 					<Input
 						id="title"
 						name="title"
 						required
-						placeholder="Give your space a name e.g Sign Out Day"
+						placeholder={tpl.titlePlaceholder}
 						className="h-12 bg-card text-base"
 					/>
 				</div>
@@ -130,6 +172,8 @@ function CreatePage() {
 					<Textarea
 						id="note"
 						name="note"
+						value={note}
+						onChange={(e) => setNote(e.target.value)}
 						rows={3}
 						placeholder="Drop a line and a doodle — we made it! 🎓"
 						className="resize-none bg-card text-base"

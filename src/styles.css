@@ -514,3 +514,24 @@ code {
     text-underline-offset: 3px;
   }
 }
+
+/* Print isolation for the share poster: on screen it's not rendered; when
+   printing, everything else is hidden and the poster fills the page. */
+.print-poster {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-poster {
+    display: flex;
+    visibility: visible;
+    position: fixed;
+    inset: 0;
+  }
+  .print-poster * {
+    visibility: visible;
+  }
+}

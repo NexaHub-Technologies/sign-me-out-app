@@ -6,6 +6,7 @@ import {
 	Mic,
 	PenLine,
 	Plus,
+	QrCode,
 	Sparkles,
 	Trash2,
 	Type,
@@ -15,6 +16,7 @@ import { type CSSProperties, useEffect, useState } from "react";
 
 import { Badge } from "#/components/ui/badge.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import { ShareDialog } from "#/features/share/share-dialog.tsx";
 import { boardColorById } from "#/lib/board-colors.ts";
 import { cn } from "#/lib/utils.ts";
 import { deleteSpace, listMySpaces } from "#/server/spaces.ts";
@@ -115,10 +117,12 @@ function SpaceCard({
 	space,
 	index,
 	onRequestDelete,
+	onRequestShare,
 }: {
 	space: DashboardSpace;
 	index: number;
 	onRequestDelete: (space: DashboardSpace) => void;
+	onRequestShare: (space: DashboardSpace) => void;
 }) {
 	const board = boardColorById(space.boardColor);
 	const darkBoard = board.dot.includes("255,255,255");
@@ -146,6 +150,20 @@ function SpaceCard({
 						<LivePulse />
 					)}
 					<div className="flex items-center gap-1.5">
+						<button
+							type="button"
+							onClick={(e) => {
+								// The whole card is a <Link>; keep the click from navigating.
+								e.preventDefault();
+								e.stopPropagation();
+								onRequestShare(space);
+							}}
+							className="grid size-7 place-items-center rounded-lg text-ink-faint transition-all hover:bg-marker-blue-deep/10 hover:text-marker-blue-deep sm:opacity-0 sm:focus-visible:opacity-100 sm:group-hover:opacity-100"
+							title="Share space"
+							aria-label={`Share ${space.title}`}
+						>
+							<QrCode className="size-4" />
+						</button>
 						<button
 							type="button"
 							onClick={(e) => {
@@ -424,6 +442,7 @@ function DashboardPage() {
 	const totalMarks = spaces.reduce((n, s) => n + s.marks, 0);
 
 	const [confirming, setConfirming] = useState<DashboardSpace | null>(null);
+	const [sharing, setSharing] = useState<DashboardSpace | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -505,6 +524,7 @@ function DashboardPage() {
 							space={s}
 							index={i}
 							onRequestDelete={requestDelete}
+							onRequestShare={setSharing}
 						/>
 					))}
 					<NewSpaceCard />
@@ -518,6 +538,15 @@ function DashboardPage() {
 					error={error}
 					onCancel={() => setConfirming(null)}
 					onConfirm={doDelete}
+				/>
+			)}
+
+			{sharing && (
+				<ShareDialog
+					slug={sharing.slug}
+					title={sharing.title}
+					boardColor={sharing.boardColor}
+					onClose={() => setSharing(null)}
 				/>
 			)}
 		</div>

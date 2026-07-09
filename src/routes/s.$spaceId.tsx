@@ -4,15 +4,7 @@ import {
 	notFound,
 	useRouter,
 } from "@tanstack/react-router";
-import {
-	Check,
-	Link2,
-	Loader2,
-	Lock,
-	LockOpen,
-	Palette,
-	Shirt,
-} from "lucide-react";
+import { Link2, Loader2, Lock, LockOpen, Palette, Shirt } from "lucide-react";
 import { lazy, useEffect, useRef, useState } from "react";
 
 import { Logo } from "#/components/logo.tsx";
@@ -22,6 +14,7 @@ import { exportCanvas } from "#/features/canvas/export-canvas.ts";
 import { ExportPicker } from "#/features/canvas/export-picker.tsx";
 import type { SignCanvasHandle } from "#/features/canvas/sign-canvas.tsx";
 import { GiftCard } from "#/features/gift/gift-card.tsx";
+import { ShareDialog } from "#/features/share/share-dialog.tsx";
 import { BOARD_COLORS, boardColorById } from "#/lib/board-colors.ts";
 import { pageMeta } from "#/lib/seo.ts";
 import { cn } from "#/lib/utils.ts";
@@ -62,7 +55,7 @@ export const Route = createFileRoute("/s/$spaceId")({
 function SpacePage() {
 	const { space, marks, isHost } = Route.useLoaderData();
 	const router = useRouter();
-	const [copied, setCopied] = useState(false);
+	const [shareOpen, setShareOpen] = useState(false);
 	const [locking, setLocking] = useState(false);
 	const [boardColorId, setBoardColorId] = useState(space.boardColor);
 	const canvasRef = useRef<SignCanvasHandle>(null);
@@ -76,17 +69,6 @@ function SpacePage() {
 			await setBoardColor({ data: { slug: space.slug, boardColor: id } });
 		} catch {
 			setBoardColorId(prev);
-		}
-	}
-
-	async function copyLink() {
-		if (typeof window === "undefined") return;
-		try {
-			await navigator.clipboard.writeText(window.location.href);
-			setCopied(true);
-			setTimeout(() => setCopied(false), 1800);
-		} catch {
-			/* clipboard unavailable */
 		}
 	}
 
@@ -119,15 +101,13 @@ function SpacePage() {
 				</div>
 
 				<div className="flex items-center gap-2">
-					<Button variant="outline" size="sm" onClick={copyLink}>
-						{copied ? (
-							<Check className="size-4" />
-						) : (
-							<Link2 className="size-4" />
-						)}
-						<span className="hidden sm:inline">
-							{copied ? "Link copied" : "Share"}
-						</span>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => setShareOpen(true)}
+					>
+						<Link2 className="size-4" />
+						<span className="hidden sm:inline">Share</span>
 					</Button>
 					{isHost && (
 						<BoardColorPicker
@@ -204,6 +184,15 @@ function SpacePage() {
 					isHost={isHost}
 				/>
 			</div>
+
+			{shareOpen && (
+				<ShareDialog
+					slug={space.slug}
+					title={space.title}
+					boardColor={boardColorId}
+					onClose={() => setShareOpen(false)}
+				/>
+			)}
 		</div>
 	);
 }

@@ -53,8 +53,7 @@ export const Route = createFileRoute("/s/$spaceId")({
 });
 
 function SpacePage() {
-	const { space, marks, isHost, reactions, myReactions, sealed } =
-		Route.useLoaderData();
+	const { space, marks, isHost, sealed } = Route.useLoaderData();
 	const router = useRouter();
 	const [shareOpen, setShareOpen] = useState(false);
 	const [locking, setLocking] = useState(false);
@@ -176,8 +175,6 @@ function SpacePage() {
 							}}
 							initialMarks={marks}
 							isHost={isHost}
-							initialReactions={reactions}
-							initialMyReactions={myReactions}
 							sealed={sealed}
 						/>
 					)}

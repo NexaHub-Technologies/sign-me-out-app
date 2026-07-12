@@ -1,0 +1,1 @@
+DROP TABLE "mark_reactions" CASCADE;

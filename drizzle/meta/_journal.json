@@ -57,6 +57,13 @@
       "when": 1783568527286,
       "tag": "0007_greedy_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783852021049,
+      "tag": "0008_sweet_naoko",
+      "breakpoints": true
     }
   ]
 }

@@ -27,7 +27,6 @@ import { useSessionUser } from "#/features/auth/use-session-user.ts";
 import { useMarksStore } from "#/features/canvas/marks-store.ts";
 import { uploadVoice } from "#/features/canvas/media.ts";
 import {
-	ReactionBadge,
 	RenderMark,
 	type TransformPatch,
 } from "#/features/canvas/render-mark.tsx";
@@ -40,7 +39,6 @@ import {
 	type ToolId,
 } from "#/features/canvas/types.ts";
 import { useRealtimeMarks } from "#/features/canvas/use-realtime-marks.ts";
-import { useRealtimeReactions } from "#/features/canvas/use-realtime-reactions.ts";
 import { SealedBanner } from "#/features/reveal/sealed-banner.tsx";
 import { cn } from "#/lib/utils.ts";
 import {
@@ -50,7 +48,6 @@ import {
 	restoreMark,
 	updateMark,
 } from "#/server/marks.ts";
-import { toggleReaction } from "#/server/reactions.ts";
 
 const TOOLS: { id: ToolId; label: string; icon: typeof PenLine }[] = [
 	{ id: "move", label: "Move", icon: Hand },
@@ -103,8 +100,6 @@ export type SignCanvasProps = {
 	};
 	initialMarks: Mark[];
 	isHost: boolean;
-	initialReactions: { markId: string; count: number }[];
-	initialMyReactions: string[];
 	/** True for a non-host viewing a still-sealed capsule (board withheld). */
 	sealed: boolean;
 };
@@ -114,17 +109,7 @@ export type SignCanvasHandle = {
 };
 
 const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
-	function SignCanvas(
-		{
-			space,
-			initialMarks,
-			isHost,
-			initialReactions,
-			initialMyReactions,
-			sealed,
-		},
-		ref,
-	) {
+	function SignCanvas({ space, initialMarks, isHost, sealed }, ref) {
 		const wrapRef = useRef<HTMLDivElement>(null);
 		const stageRef = useRef<Konva.Stage>(null);
 		const draftRef = useRef<Draft | null>(null);
@@ -164,30 +149,12 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 
 		const { user, ready } = useSessionUser();
 		const { marks, count, upsert, remove } = useMarksStore(initialMarks);
-		// A sealed capsule mustn't stream other people's marks/reactions to a
-		// signer — keep both subscriptions off until it opens.
+		// A sealed capsule mustn't stream other people's marks to a signer —
+		// keep the subscription off until it opens.
 		useRealtimeMarks(space.id, upsert, remove, !sealed);
-		const reactions = useRealtimeReactions(
-			space.id,
-			initialReactions,
-			initialMyReactions,
-			user?.id ?? null,
-			!sealed,
-		);
 		const locked = space.status === "locked";
 		const needsAuth = ready && !user;
 
-		// React (❤️) to a mark; the realtime stream is the source of truth, so we
-		// don't update locally — the echo of our own write flips the heart.
-		function toggleReactionFor(markId: string) {
-			if (!user) {
-				setSignInOpen(true);
-				return;
-			}
-			toggleReaction({ data: { markId } }).catch((err: Error) => {
-				setSaveError(err.message || "Couldn't save your reaction");
-			});
-		}
 		const colorHex =
 			MARKER_COLORS.find((c) => c.id === colorId)?.value ?? "#2f6be6";
 
@@ -791,18 +758,6 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 									onTransformEnd={onMarkTransformEnd}
 									viewerId={user?.id ?? null}
 									isHost={isHost}
-								/>
-							))}
-							{/* ❤️ badges sit above the marks; interactive only in Move so
-							    they don't intercept drawing gestures in the other tools. */}
-							{marks.map((mark) => (
-								<ReactionBadge
-									key={`r-${mark.id}`}
-									mark={mark}
-									count={reactions.counts.get(mark.id) ?? 0}
-									mine={reactions.mine.has(mark.id)}
-									interactive={tool === "move"}
-									onToggle={toggleReactionFor}
 								/>
 							))}
 							{draft && (

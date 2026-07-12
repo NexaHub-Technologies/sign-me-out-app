@@ -112,40 +112,6 @@ export const marks = pgTable(
 ).enableRLS();
 
 /**
- * One reaction (a ❤️ for now) by one user on one mark. `spaceId` is denormalised
- * from the mark so Realtime — whose filters are single-column — can stream a
- * whole space's reactions with `space_id=eq.<id>`. The unique index makes
- * toggling idempotent (a user can hold at most one of each emoji per mark).
- * Written server-side via Drizzle; deletes carry the full row to clients via
- * REPLICA IDENTITY FULL (set in init-policies.sql) so counts can decrement.
- */
-export const markReactions = pgTable(
-	"mark_reactions",
-	{
-		id: uuid().defaultRandom().primaryKey().notNull(),
-		markId: uuid("mark_id")
-			.notNull()
-			.references(() => marks.id, { onDelete: "cascade" }),
-		spaceId: uuid("space_id")
-			.notNull()
-			.references(() => signSpaces.id, { onDelete: "cascade" }),
-		userId: uuid("user_id").notNull(),
-		emoji: text().default("❤️").notNull(),
-		createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
-			.defaultNow()
-			.notNull(),
-	},
-	(table) => [
-		uniqueIndex("mark_reactions_unique_idx").on(
-			table.markId,
-			table.userId,
-			table.emoji,
-		),
-		index("mark_reactions_space_idx").on(table.spaceId),
-	],
-).enableRLS();
-
-/**
  * One row per space-creation payment (₦1,000 via Paystack). Created `pending`
  * when checkout starts, flipped to `success` once verified, and consumed
  * (spaceId set) when the paid-for space is created — a reference is single-use.

@@ -1106,61 +1106,57 @@ function Dock({
 						<Redo2 className="size-5" />
 					</button>
 					<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
+					{/* contextual stepper — floats above the tray like the colour picker,
+					    so it never widens the dock row on small screens */}
 					{tool === "text" && (
-						<>
-							<span className="flex shrink-0 items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">
-								<button
-									type="button"
-									onClick={() => setFontSize(fontSize - 6)}
-									title="Smaller text"
-									aria-label="Smaller text"
-									className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
-								>
-									<Minus className="size-4" />
-								</button>
-								<span className="min-w-9 text-center text-sm font-semibold tabular-nums text-ink">
-									{fontSize}
-								</span>
-								<button
-									type="button"
-									onClick={() => setFontSize(fontSize + 6)}
-									title="Bigger text"
-									aria-label="Bigger text"
-									className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
-								>
-									<Plus className="size-4" />
-								</button>
+						<div className="glass-pill absolute bottom-full left-1/2 mb-2 flex -translate-x-1/2 items-center gap-1 rounded-full px-2 py-1.5">
+							<button
+								type="button"
+								onClick={() => setFontSize(fontSize - 6)}
+								title="Smaller text"
+								aria-label="Smaller text"
+								className="grid size-8 place-items-center rounded-full text-ink-soft hover:bg-ink/10 hover:text-ink"
+							>
+								<Minus className="size-4" />
+							</button>
+							<span className="min-w-9 text-center text-sm font-semibold tabular-nums text-ink">
+								{fontSize}
 							</span>
-							<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
-						</>
+							<button
+								type="button"
+								onClick={() => setFontSize(fontSize + 6)}
+								title="Bigger text"
+								aria-label="Bigger text"
+								className="grid size-8 place-items-center rounded-full text-ink-soft hover:bg-ink/10 hover:text-ink"
+							>
+								<Plus className="size-4" />
+							</button>
+						</div>
 					)}
 					{tool === "zoom" && (
-						<>
-							<span className="flex shrink-0 items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">
-								<button
-									type="button"
-									onClick={() => onZoom(1 / ZOOM_STEP)}
-									title="Zoom out"
-									aria-label="Zoom out"
-									className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
-								>
-									<Minus className="size-4" />
-								</button>
-								<span className="min-w-12 text-center text-sm font-semibold tabular-nums text-ink">
-									{Math.round(scale * 100)}%
-								</span>
-								<button
-									type="button"
-									onClick={() => onZoom(ZOOM_STEP)}
-									title="Zoom in"
-									aria-label="Zoom in"
-									className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
-								>
-									<Plus className="size-4" />
-								</button>
+						<div className="glass-pill absolute bottom-full left-1/2 mb-2 flex -translate-x-1/2 items-center gap-1 rounded-full px-2 py-1.5">
+							<button
+								type="button"
+								onClick={() => onZoom(1 / ZOOM_STEP)}
+								title="Zoom out"
+								aria-label="Zoom out"
+								className="grid size-8 place-items-center rounded-full text-ink-soft hover:bg-ink/10 hover:text-ink"
+							>
+								<Minus className="size-4" />
+							</button>
+							<span className="min-w-12 text-center text-sm font-semibold tabular-nums text-ink">
+								{Math.round(scale * 100)}%
 							</span>
-							<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
-						</>
+							<button
+								type="button"
+								onClick={() => onZoom(ZOOM_STEP)}
+								title="Zoom in"
+								aria-label="Zoom in"
+								className="grid size-8 place-items-center rounded-full text-ink-soft hover:bg-ink/10 hover:text-ink"
+							>
+								<Plus className="size-4" />
+							</button>
+						</div>
 					)}
 					{TOOLS.map((t) => {
 						const active = tool === t.id || (t.id === "voice" && recording);

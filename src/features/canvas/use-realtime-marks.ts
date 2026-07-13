@@ -6,42 +6,57 @@ import {
 	isSupabaseConfigured,
 } from "#/lib/supabase.ts";
 
-/** Realtime payloads use raw DB (snake_case) column names — map to our Mark. */
-// biome-ignore lint/suspicious/noExplicitAny: realtime row is loosely typed
-function rowToMark(r: any): Mark {
-	return {
-		id: r.id,
-		spaceId: r.space_id,
-		authorId: r.author_id ?? null,
-		authorName: r.author_name,
-		kind: r.kind,
-		x: r.x,
-		y: r.y,
-		rotation: r.rotation,
-		scale: r.scale,
-		z: r.z,
-		color: r.color ?? null,
-		points: r.points ?? null,
-		size: r.size ?? null,
-		text: r.text ?? null,
-		fontSize: r.font_size ?? null,
-		width: r.width ?? null,
-		height: r.height ?? null,
-		mediaUrl: r.media_url ?? null,
-		caption: r.caption ?? null,
-		durationMs: r.duration_ms ?? null,
-		status: r.status,
-		createdAt: r.created_at,
-	};
+/** Raw DB (snake_case) column → Mark field. */
+const COLUMNS: Record<string, keyof Mark> = {
+	id: "id",
+	space_id: "spaceId",
+	author_id: "authorId",
+	author_name: "authorName",
+	kind: "kind",
+	x: "x",
+	y: "y",
+	rotation: "rotation",
+	scale: "scale",
+	z: "z",
+	color: "color",
+	points: "points",
+	size: "size",
+	text: "text",
+	font_size: "fontSize",
+	width: "width",
+	height: "height",
+	media_url: "mediaUrl",
+	caption: "caption",
+	duration_ms: "durationMs",
+	status: "status",
+	created_at: "createdAt",
+};
+
+/**
+ * Map only the columns actually present in a realtime payload. UPDATE events
+ * omit unchanged TOASTed columns (e.g. a long stroke's `points` jsonb), so an
+ * absent column means "unchanged", not null — it must not be defaulted.
+ */
+function rowToPartial(
+	r: Record<string, unknown>,
+): Partial<Mark> & { id: string } {
+	const out: Record<string, unknown> = {};
+	for (const [col, field] of Object.entries(COLUMNS)) {
+		if (col in r) out[field] = r[col];
+	}
+	return out as Partial<Mark> & { id: string };
 }
 
 /**
- * Subscribe to live changes for one space's marks. INSERT/UPDATE upsert (unless
- * hidden), DELETE/hidden remove. Own optimistic inserts dedupe by id in the store.
+ * Subscribe to live changes for one space's marks. INSERT payloads carry the
+ * full row and upsert; UPDATE payloads can be partial and are merged onto the
+ * cached mark (the store filters hidden marks out of the render list); DELETE
+ * removes.
  */
 export function useRealtimeMarks(
 	spaceId: string,
 	upsert: (m: Mark) => void,
+	patch: (id: string, p: Partial<Mark>) => void,
 	remove: (id: string) => void,
 	enabled = true,
 ) {
@@ -64,14 +79,14 @@ export function useRealtimeMarks(
 						if (old.id) remove(old.id);
 						return;
 					}
-					const mark = rowToMark(payload.new);
-					if (mark.status === "visible") upsert(mark);
-					else remove(mark.id);
+					const row = rowToPartial(payload.new as Record<string, unknown>);
+					if (payload.eventType === "INSERT") upsert(row as Mark);
+					else patch(row.id, row);
 				},
 			)
 			.subscribe();
 		return () => {
 			supabase.removeChannel(channel);
 		};
-	}, [spaceId, upsert, remove, enabled]);
+	}, [spaceId, upsert, patch, remove, enabled]);
 }

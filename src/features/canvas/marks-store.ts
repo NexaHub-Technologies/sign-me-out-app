@@ -5,6 +5,8 @@ import type { Mark } from "#/features/canvas/types.ts";
 /**
  * Local canvas state: a Map keyed by mark id. Optimistic local inserts and
  * Realtime echoes both call `upsert`, so duplicates collapse by id automatically.
+ * Hidden marks stay cached (so a later restore patch has a full row to merge
+ * onto) but are filtered out of `marks`.
  */
 export function useMarksStore(initial: Mark[]) {
 	const [map, setMap] = useState<Map<string, Mark>>(
@@ -15,6 +17,18 @@ export function useMarksStore(initial: Mark[]) {
 		setMap((prev) => {
 			const next = new Map(prev);
 			next.set(mark.id, mark);
+			return next;
+		});
+	}, []);
+
+	// Merge a partial row onto the cached mark. Realtime UPDATE payloads omit
+	// unchanged TOASTed columns (e.g. a long stroke's `points`), so replacing
+	// the whole mark would wipe them — merge instead.
+	const patch = useCallback((id: string, p: Partial<Mark>) => {
+		setMap((prev) => {
+			const cur = prev.get(id);
+			const next = new Map(prev);
+			next.set(id, cur ? { ...cur, ...p } : (p as Mark));
 			return next;
 		});
 	}, []);
@@ -30,12 +44,14 @@ export function useMarksStore(initial: Mark[]) {
 
 	const marks = useMemo(
 		() =>
-			[...map.values()].sort(
-				(a, b) =>
-					(a.z ?? 0) - (b.z ?? 0) || a.createdAt.localeCompare(b.createdAt),
-			),
+			[...map.values()]
+				.filter((m) => m.status === "visible")
+				.sort(
+					(a, b) =>
+						(a.z ?? 0) - (b.z ?? 0) || a.createdAt.localeCompare(b.createdAt),
+				),
 		[map],
 	);
 
-	return { marks, count: map.size, upsert, remove };
+	return { marks, count: marks.length, upsert, patch, remove };
 }

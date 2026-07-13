@@ -159,10 +159,10 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		const [redoStack, setRedoStack] = useState<RedoEntry[]>([]);
 
 		const { user, ready } = useSessionUser();
-		const { marks, count, upsert, remove } = useMarksStore(initialMarks);
+		const { marks, count, upsert, patch, remove } = useMarksStore(initialMarks);
 		// A sealed capsule mustn't stream other people's marks to a signer —
 		// keep the subscription off until it opens.
-		useRealtimeMarks(space.id, upsert, remove, !sealed);
+		useRealtimeMarks(space.id, upsert, patch, remove, !sealed);
 		const locked = space.status === "locked";
 		const needsAuth = ready && !user;
 

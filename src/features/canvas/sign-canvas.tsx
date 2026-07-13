@@ -830,13 +830,8 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				<div className="absolute left-4 top-20 z-20">
 					{user ? (
 						<span
-							style={
-								{
-									"--rot": "-2deg",
-									"--tape": "var(--marker-blue)",
-								} as CSSProperties
-							}
-							className="glass-pill pin tape relative inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft"
+							style={{ "--rot": "-2deg" } as CSSProperties}
+							className="glass-pill pin relative inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft"
 						>
 							<span className="size-2 rounded-full bg-marker-blue" />
 							Signing as {user.name}
@@ -846,13 +841,8 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 							<button
 								type="button"
 								onClick={() => setSignInOpen(true)}
-								style={
-									{
-										"--rot": "-2deg",
-										"--tape": "var(--marker-blue)",
-									} as CSSProperties
-								}
-								className="glass-pill pin tape relative inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-marker-blue-deep hover:bg-card"
+								style={{ "--rot": "-2deg" } as CSSProperties}
+								className="glass-pill pin relative inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-marker-blue-deep hover:bg-card"
 							>
 								Sign in to sign
 							</button>

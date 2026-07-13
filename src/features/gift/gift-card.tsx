@@ -70,10 +70,9 @@ export function GiftCard({
 							{
 								borderColor: "rgba(47, 107, 230, 0.3)",
 								"--rot": "2deg",
-								"--tape": "var(--marker-pink)",
 							} as CSSProperties
 						}
-						className="glass-pill pin tape relative inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold text-marker-blue-deep hover:bg-card"
+						className="glass-pill pin relative inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold text-marker-blue-deep hover:bg-card"
 					>
 						<Gift className="size-4" /> Send a gift
 					</button>
@@ -86,10 +85,9 @@ export function GiftCard({
 						{
 							borderStyle: "dashed",
 							"--rot": "2deg",
-							"--tape": "var(--marker-pink)",
 						} as CSSProperties
 					}
-					className="glass-pill pin tape relative inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft hover:text-ink"
+					className="glass-pill pin relative inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft hover:text-ink"
 				>
 					<Plus className="size-4" /> Add a cash gift
 				</button>

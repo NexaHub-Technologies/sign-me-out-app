@@ -123,7 +123,10 @@ function SpacePage() {
 
 			<header className="paper-card absolute inset-x-3 top-3 z-40 flex items-center justify-between gap-2 rounded-2xl px-2.5 py-2 sm:inset-x-4 sm:gap-3 sm:px-4 sm:py-2.5">
 				<div className="flex min-w-0 items-center gap-2 sm:gap-3">
-					<Logo to="/dashboard" />
+					<Logo
+						to="/dashboard"
+						className="[&>span]:hidden sm:[&>span]:inline"
+					/>
 					<span className="hidden h-6 w-px bg-line sm:block" />
 					<div className="hidden min-w-0 sm:block">
 						<p className="flex items-center gap-1.5 truncate font-display text-sm font-bold text-ink">

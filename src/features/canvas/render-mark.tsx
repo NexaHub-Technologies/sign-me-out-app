@@ -1,4 +1,6 @@
+import type { Context } from "konva/lib/Context";
 import type { KonvaEventObject } from "konva/lib/Node";
+import type { Shape } from "konva/lib/Shape";
 import { useEffect, useRef, useState } from "react";
 import {
 	Arc,
@@ -15,6 +17,13 @@ import type { Mark } from "#/features/canvas/types.ts";
 import { getVoiceUrl } from "#/server/marks.ts";
 
 const HAND_FONT = "Caveat, Comic Sans MS, cursive";
+
+// Minimum tappable footprint, in *screen* pixels, for a stroke's hit ribbon
+// and the padding around a text mark's hit box. Hit shapes are drawn in local
+// coordinates, so these get divided by the node's absolute scale (stage zoom ×
+// mark scale) to stay finger-sized at any zoom level.
+const STROKE_HIT_PX = 40;
+const TEXT_HIT_PAD_PX = 10;
 
 const WAVEFORM = [10, 16, 8, 18, 12, 14, 9].map((h, i) => ({
 	id: `bar-${i}`,
@@ -85,17 +94,35 @@ export function RenderMark({
 	};
 
 	switch (mark.kind) {
-		case "stroke":
+		case "stroke": {
+			const points = mark.points ?? [];
+			const size = mark.size ?? 8;
 			return (
 				<Line
 					{...common}
-					points={strokeToFlatPath(mark.points ?? [], mark.size ?? 8)}
+					points={strokeToFlatPath(points, size)}
 					closed
 					fill={mark.color ?? "#1b1b19"}
 					lineCap="round"
 					lineJoin="round"
+					// The drawn ribbon is only ~size px wide (thinner where pressure
+					// tapers) — a hopeless touch target. Hit-test a fat, zoom-aware
+					// ribbon along the centreline instead.
+					hitFunc={(ctx: Context, shape: Shape) => {
+						if (points.length === 0) return;
+						const abs = shape.getAbsoluteScale().x || 1;
+						ctx.beginPath();
+						ctx.moveTo(points[0].x, points[0].y);
+						for (const p of points) ctx.lineTo(p.x, p.y);
+						ctx.setAttr("lineWidth", Math.max(size, STROKE_HIT_PX / abs));
+						ctx.setAttr("lineCap", "round");
+						ctx.setAttr("lineJoin", "round");
+						ctx.setAttr("strokeStyle", shape.colorKey);
+						ctx.stroke();
+					}}
 				/>
 			);
+		}
 		case "text":
 			return (
 				<Text
@@ -107,6 +134,20 @@ export function RenderMark({
 					fill={mark.color ?? "#1b1b19"}
 					width={mark.width ?? undefined}
 					lineHeight={1.1}
+					// Pad the hit box so short or small text is still tappable.
+					hitFunc={(ctx: Context, shape: Shape) => {
+						const abs = shape.getAbsoluteScale().x || 1;
+						const pad = TEXT_HIT_PAD_PX / abs;
+						ctx.beginPath();
+						ctx.rect(
+							-pad,
+							-pad,
+							shape.width() + pad * 2,
+							shape.height() + pad * 2,
+						);
+						ctx.closePath();
+						ctx.fillStrokeShape(shape);
+					}}
 				/>
 			);
 		case "photo":

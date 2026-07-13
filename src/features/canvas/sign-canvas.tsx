@@ -53,6 +53,10 @@ import {
 // pinch that starts during a one-finger pan (Move tool) never reaches
 // handlePinch, because Konva suppresses events on a dragging node by default.
 Konva.hitOnDragEnabled = true;
+// A fingertip jitters a few pixels during a tap. Konva's default threshold (0)
+// turns that jitter into a drag, which swallows the tap — the mark never gets
+// selected and is nudged a pixel instead. Require real movement to start a drag.
+Konva.dragDistance = 8;
 
 const TOOLS: { id: ToolId; label: string; icon: typeof PenLine }[] = [
 	{ id: "move", label: "Move & zoom", icon: Hand },
@@ -799,6 +803,11 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 								anchorStroke="#1d4ed8"
 								anchorFill="#ffffff"
 								anchorCornerRadius={6}
+								anchorSize={12}
+								// Anchors stay visually small but get a finger-sized hit halo.
+								anchorStyleFunc={(anchor) => {
+									anchor.hitStrokeWidth(24);
+								}}
 								borderStroke="#1d4ed8"
 								borderDash={[4, 4]}
 								rotateAnchorOffset={28}

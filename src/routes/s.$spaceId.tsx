@@ -121,8 +121,8 @@ function SpacePage() {
 				/>
 			</div>
 
-			<header className="paper-card absolute inset-x-3 top-3 z-40 flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 sm:inset-x-4 sm:px-4">
-				<div className="flex min-w-0 items-center gap-3">
+			<header className="paper-card absolute inset-x-3 top-3 z-40 flex items-center justify-between gap-2 rounded-2xl px-2.5 py-2 sm:inset-x-4 sm:gap-3 sm:px-4 sm:py-2.5">
+				<div className="flex min-w-0 items-center gap-2 sm:gap-3">
 					<Logo to="/dashboard" />
 					<span className="hidden h-6 w-px bg-line sm:block" />
 					<div className="hidden min-w-0 sm:block">
@@ -137,7 +137,7 @@ function SpacePage() {
 					</div>
 				</div>
 
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-1.5 sm:gap-2">
 					<Button
 						variant="outline"
 						size="sm"

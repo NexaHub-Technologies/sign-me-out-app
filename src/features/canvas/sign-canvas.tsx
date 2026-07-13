@@ -1221,7 +1221,7 @@ function Dock({
 						{colorOpen && (
 							<div
 								role="menu"
-								className="glass-pill absolute bottom-full left-1/2 mb-2 flex -translate-x-1/2 items-center gap-2.5 rounded-full px-3.5 py-2.5"
+								className="glass-pill absolute bottom-full right-0 mb-2 flex items-center gap-2.5 rounded-full px-3.5 py-2.5"
 							>
 								{MARKER_COLORS.map((c) => (
 									<button

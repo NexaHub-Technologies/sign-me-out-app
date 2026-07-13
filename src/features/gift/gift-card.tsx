@@ -66,7 +66,8 @@ export function GiftCard({
 					<button
 						type="button"
 						onClick={() => setOpen(true)}
-						className="inline-flex items-center gap-2 rounded-full border border-marker-blue/30 bg-surface-strong px-3.5 py-2 text-sm font-semibold text-marker-blue-deep shadow-md backdrop-blur-md hover:bg-card"
+						style={{ borderColor: "rgba(47, 107, 230, 0.3)" }}
+						className="glass-pill inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold text-marker-blue-deep hover:bg-card"
 					>
 						<Gift className="size-4" /> Send a gift
 					</button>
@@ -75,7 +76,8 @@ export function GiftCard({
 				<button
 					type="button"
 					onClick={() => setEditing(true)}
-					className="inline-flex items-center gap-2 rounded-full border border-dashed border-line bg-surface-strong px-3.5 py-2 text-sm font-medium text-ink-soft shadow-sm backdrop-blur-md hover:text-ink"
+					style={{ borderStyle: "dashed" }}
+					className="glass-pill inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft hover:text-ink"
 				>
 					<Plus className="size-4" /> Add a cash gift
 				</button>

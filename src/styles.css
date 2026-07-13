@@ -208,7 +208,18 @@ code {
     0 1px 0 var(--inset-glint) inset,
     0 24px 48px rgba(24, 34, 56, 0.08),
     0 6px 16px rgba(24, 34, 56, 0.05);
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(8px);
+}
+
+/* a compact glass pill — chips, toasts and status banners floating over the canvas */
+.glass-pill {
+  border: 1px solid var(--line);
+  background: linear-gradient(168deg, var(--surface-strong), var(--surface));
+  box-shadow:
+    0 1px 0 var(--inset-glint) inset,
+    0 8px 20px rgba(24, 34, 56, 0.08),
+    0 2px 6px rgba(24, 34, 56, 0.05);
+  backdrop-filter: blur(8px);
 }
 
 .feature-card {

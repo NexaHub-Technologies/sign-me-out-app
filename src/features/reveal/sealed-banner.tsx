@@ -50,7 +50,7 @@ export function SealedBanner({
 
 	return (
 		<div className="pointer-events-none absolute left-1/2 top-4 z-30 w-[min(92vw,30rem)] -translate-x-1/2">
-			<div className="pointer-events-auto rounded-2xl border border-line bg-surface-strong px-4 py-3 text-center shadow-lg">
+			<div className="paper-card pointer-events-auto rounded-2xl px-4 py-3 text-center">
 				<p className="flex items-center justify-center gap-2 font-display font-bold text-ink">
 					<Lock className="size-4 text-marker-blue-deep" />
 					{hostPreview ? "Sealed — you're previewing" : "This board is sealed"}

@@ -828,7 +828,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				{/* signing-as chip */}
 				<div className="absolute left-4 top-4 z-20">
 					{user ? (
-						<span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-strong px-3 py-1.5 text-xs font-medium text-ink-soft shadow-sm">
+						<span className="glass-pill inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft">
 							<span className="size-2 rounded-full bg-marker-blue" />
 							Signing as {user.name}
 						</span>
@@ -837,7 +837,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 							<button
 								type="button"
 								onClick={() => setSignInOpen(true)}
-								className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-strong px-3 py-1.5 text-xs font-semibold text-marker-blue-deep shadow-sm hover:bg-card"
+								className="glass-pill inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-marker-blue-deep hover:bg-card"
 							>
 								Sign in to sign
 							</button>
@@ -853,13 +853,13 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				)}
 
 				{saveError && (
-					<div className="absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-full border border-line bg-surface-strong px-4 py-2 text-sm font-medium text-ink shadow-lg">
+					<div className="glass-pill absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium text-ink">
 						{saveError}
 					</div>
 				)}
 
 				{locked && (
-					<div className="absolute left-1/2 top-14 z-20 -translate-x-1/2 rounded-full border border-line bg-surface-strong px-4 py-2 text-sm font-medium text-ink-soft shadow-sm">
+					<div className="glass-pill absolute left-1/2 top-14 z-20 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium text-ink-soft">
 						This space is locked — signing is closed.
 					</div>
 				)}
@@ -1044,7 +1044,7 @@ function Dock({
 	}
 	return (
 		<div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-			<div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl border border-line bg-surface-strong p-1.5 shadow-lg backdrop-blur-md">
+			<div className="paper-card flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl p-1.5">
 				<button
 					type="button"
 					onClick={onUndo}

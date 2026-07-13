@@ -1,5 +1,5 @@
 import { Check, Copy, Gift, Loader2, Pencil, Plus, X } from "lucide-react";
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 
 import {
 	EMPTY_GIFT,
@@ -53,7 +53,7 @@ export function GiftCard({
 	if (!gift && !isHost) return null;
 
 	return (
-		<div className="absolute right-3 top-3 z-20 flex w-[min(20rem,calc(100vw-1.5rem))] flex-col items-end">
+		<div className="absolute right-3 top-20 z-20 flex w-[min(20rem,calc(100vw-1.5rem))] flex-col items-end">
 			{gift ? (
 				open ? (
 					<GiftPanel
@@ -66,8 +66,14 @@ export function GiftCard({
 					<button
 						type="button"
 						onClick={() => setOpen(true)}
-						style={{ borderColor: "rgba(47, 107, 230, 0.3)" }}
-						className="glass-pill inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold text-marker-blue-deep hover:bg-card"
+						style={
+							{
+								borderColor: "rgba(47, 107, 230, 0.3)",
+								"--rot": "2deg",
+								"--tape": "var(--marker-pink)",
+							} as CSSProperties
+						}
+						className="glass-pill pin tape relative inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold text-marker-blue-deep hover:bg-card"
 					>
 						<Gift className="size-4" /> Send a gift
 					</button>
@@ -76,8 +82,14 @@ export function GiftCard({
 				<button
 					type="button"
 					onClick={() => setEditing(true)}
-					style={{ borderStyle: "dashed" }}
-					className="glass-pill inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft hover:text-ink"
+					style={
+						{
+							borderStyle: "dashed",
+							"--rot": "2deg",
+							"--tape": "var(--marker-pink)",
+						} as CSSProperties
+					}
+					className="glass-pill pin tape relative inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft hover:text-ink"
 				>
 					<Plus className="size-4" /> Add a cash gift
 				</button>
@@ -124,7 +136,12 @@ function GiftPanel({
 	}
 
 	return (
-		<div className="paper-card w-full rounded-2xl p-4">
+		<div
+			style={
+				{ "--rot": "1.5deg", "--tape": "var(--marker-pink)" } as CSSProperties
+			}
+			className="paper-card pin tape relative w-full rounded-2xl p-4"
+		>
 			<div className="flex items-center justify-between gap-2">
 				<span className="inline-flex items-center gap-1.5 font-display text-sm font-extrabold text-ink">
 					<Gift className="size-4 text-marker-blue-deep" /> Send a cash gift

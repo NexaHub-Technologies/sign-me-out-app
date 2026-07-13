@@ -13,6 +13,7 @@ import {
 	ZoomIn,
 } from "lucide-react";
 import {
+	type CSSProperties,
 	forwardRef,
 	useEffect,
 	useImperativeHandle,
@@ -825,10 +826,18 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 					}}
 				/>
 
-				{/* signing-as chip */}
-				<div className="absolute left-4 top-4 z-20">
+				{/* signing-as chip — pinned to the board like a name tag */}
+				<div className="absolute left-4 top-20 z-20">
 					{user ? (
-						<span className="glass-pill inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft">
+						<span
+							style={
+								{
+									"--rot": "-2deg",
+									"--tape": "var(--marker-blue)",
+								} as CSSProperties
+							}
+							className="glass-pill pin tape relative inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft"
+						>
 							<span className="size-2 rounded-full bg-marker-blue" />
 							Signing as {user.name}
 						</span>
@@ -837,7 +846,13 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 							<button
 								type="button"
 								onClick={() => setSignInOpen(true)}
-								className="glass-pill inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-marker-blue-deep hover:bg-card"
+								style={
+									{
+										"--rot": "-2deg",
+										"--tape": "var(--marker-blue)",
+									} as CSSProperties
+								}
+								className="glass-pill pin tape relative inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-marker-blue-deep hover:bg-card"
 							>
 								Sign in to sign
 							</button>
@@ -846,20 +861,20 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				</div>
 
 				{recording && (
-					<div className="absolute left-1/2 top-4 z-30 -translate-x-1/2 inline-flex items-center gap-2 rounded-full bg-marker-pink px-4 py-2 text-sm font-semibold text-white shadow-lg">
+					<div className="absolute left-1/2 top-20 z-30 -translate-x-1/2 inline-flex items-center gap-2 rounded-full bg-marker-pink px-4 py-2 text-sm font-semibold text-white shadow-lg">
 						<span className="size-2 animate-pulse rounded-full bg-white" />
 						Recording… tap the mic to stop
 					</div>
 				)}
 
 				{saveError && (
-					<div className="glass-pill absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium text-ink">
+					<div className="glass-pill absolute left-1/2 top-20 z-30 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium text-ink">
 						{saveError}
 					</div>
 				)}
 
 				{locked && (
-					<div className="glass-pill absolute left-1/2 top-14 z-20 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium text-ink-soft">
+					<div className="glass-pill absolute left-1/2 top-32 z-20 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium text-ink-soft">
 						This space is locked — signing is closed.
 					</div>
 				)}
@@ -1042,150 +1057,218 @@ function Dock({
 		}
 		onPick(id);
 	}
+	const activeColor =
+		MARKER_COLORS.find((c) => c.id === colorId)?.value ?? "#2f6be6";
+	const [colorOpen, setColorOpen] = useState(false);
+	const colorRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (!colorOpen) return;
+		function onDown(e: MouseEvent) {
+			if (colorRef.current && !colorRef.current.contains(e.target as Node)) {
+				setColorOpen(false);
+			}
+		}
+		function onKey(e: KeyboardEvent) {
+			if (e.key === "Escape") setColorOpen(false);
+		}
+		document.addEventListener("mousedown", onDown);
+		document.addEventListener("keydown", onKey);
+		return () => {
+			document.removeEventListener("mousedown", onDown);
+			document.removeEventListener("keydown", onKey);
+		};
+	}, [colorOpen]);
 	return (
 		<div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-			<div className="paper-card flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl p-1.5">
-				<button
-					type="button"
-					onClick={onUndo}
-					disabled={!canUndo}
-					title="Undo (Ctrl+Z)"
-					aria-label="Undo"
-					className="grid size-9 shrink-0 place-items-center rounded-xl text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent sm:size-10"
-				>
-					<Undo2 className="size-5" />
-				</button>
-				<button
-					type="button"
-					onClick={onRedo}
-					disabled={!canRedo}
-					title="Redo (Ctrl+Shift+Z)"
-					aria-label="Redo"
-					className="grid size-9 shrink-0 place-items-center rounded-xl text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent sm:size-10"
-				>
-					<Redo2 className="size-5" />
-				</button>
-				<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
-				{tool === "text" && (
-					<>
-						<span className="flex shrink-0 items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">
-							<button
-								type="button"
-								onClick={() => setFontSize(fontSize - 6)}
-								title="Smaller text"
-								aria-label="Smaller text"
-								className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
-							>
-								<Minus className="size-4" />
-							</button>
-							<span className="min-w-9 text-center text-sm font-semibold tabular-nums text-ink">
-								{fontSize}
-							</span>
-							<button
-								type="button"
-								onClick={() => setFontSize(fontSize + 6)}
-								title="Bigger text"
-								aria-label="Bigger text"
-								className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
-							>
-								<Plus className="size-4" />
-							</button>
-						</span>
-						<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
-					</>
-				)}
-				{tool === "zoom" && (
-					<>
-						<span className="flex shrink-0 items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">
-							<button
-								type="button"
-								onClick={() => onZoom(1 / ZOOM_STEP)}
-								title="Zoom out"
-								aria-label="Zoom out"
-								className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
-							>
-								<Minus className="size-4" />
-							</button>
-							<span className="min-w-12 text-center text-sm font-semibold tabular-nums text-ink">
-								{Math.round(scale * 100)}%
-							</span>
-							<button
-								type="button"
-								onClick={() => onZoom(ZOOM_STEP)}
-								title="Zoom in"
-								aria-label="Zoom in"
-								className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
-							>
-								<Plus className="size-4" />
-							</button>
-						</span>
-						<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
-					</>
-				)}
-				{TOOLS.map((t) => {
-					const active = tool === t.id || (t.id === "voice" && recording);
-					return (
-						<button
-							key={t.id}
-							type="button"
-							onClick={() => pick(t.id)}
-							disabled={disabled && !FREE_TOOLS.includes(t.id)}
-							title={t.label}
-							aria-label={t.label}
-							aria-pressed={active}
-							className={cn(
-								"grid size-9 shrink-0 place-items-center rounded-xl transition-colors disabled:opacity-40 sm:size-10",
-								active
-									? t.id === "voice" && recording
-										? "bg-marker-pink text-white"
-										: "bg-marker-blue-deep text-white"
-									: "text-ink-soft hover:bg-ink/5 hover:text-ink",
-							)}
-						>
-							<t.icon className="size-5" />
-						</button>
-					);
-				})}
-
-				<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
-
-				{MARKER_COLORS.map((c) => (
+			<div className="relative flex max-w-full justify-center">
+				{/* a soft bloom of the current ink colour, glowing up through the tray */}
+				<div
+					aria-hidden
+					className="pointer-events-none absolute -bottom-4 h-14 w-56 rounded-full opacity-70 blur-xl transition-colors duration-300"
+					style={{
+						background: `radial-gradient(closest-side, ${activeColor}4d, transparent 72%)`,
+					}}
+				/>
+				<div className="paper-card relative flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl p-1.5">
+					{/* the tray's latch — a small nub, like a pencil case clasp */}
+					<span
+						aria-hidden
+						className="absolute -top-1.5 left-1/2 h-2.5 w-8 -translate-x-1/2 rounded-b-md border border-t-0 border-line bg-surface-strong"
+					/>
 					<button
-						key={c.id}
 						type="button"
-						onClick={() => setColorId(c.id)}
-						title={`${c.id} marker`}
-						aria-label={`${c.id} marker`}
-						aria-pressed={colorId === c.id}
-						className={cn(
-							"grid size-8 shrink-0 place-items-center rounded-full transition-transform sm:size-9",
-							colorId === c.id ? "scale-110" : "opacity-80 hover:opacity-100",
-						)}
+						onClick={onUndo}
+						disabled={!canUndo}
+						title="Undo (Ctrl+Z)"
+						aria-label="Undo"
+						className="grid size-9 shrink-0 place-items-center rounded-xl text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent sm:size-10"
 					>
-						<span
-							className={cn(
-								"size-6 rounded-full border-2",
-								colorId === c.id ? "border-ink/40" : "border-white",
-							)}
-							style={{ backgroundColor: c.value }}
-						/>
+						<Undo2 className="size-5" />
 					</button>
-				))}
+					<button
+						type="button"
+						onClick={onRedo}
+						disabled={!canRedo}
+						title="Redo (Ctrl+Shift+Z)"
+						aria-label="Redo"
+						className="grid size-9 shrink-0 place-items-center rounded-xl text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent sm:size-10"
+					>
+						<Redo2 className="size-5" />
+					</button>
+					<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
+					{tool === "text" && (
+						<>
+							<span className="flex shrink-0 items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">
+								<button
+									type="button"
+									onClick={() => setFontSize(fontSize - 6)}
+									title="Smaller text"
+									aria-label="Smaller text"
+									className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
+								>
+									<Minus className="size-4" />
+								</button>
+								<span className="min-w-9 text-center text-sm font-semibold tabular-nums text-ink">
+									{fontSize}
+								</span>
+								<button
+									type="button"
+									onClick={() => setFontSize(fontSize + 6)}
+									title="Bigger text"
+									aria-label="Bigger text"
+									className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
+								>
+									<Plus className="size-4" />
+								</button>
+							</span>
+							<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
+						</>
+					)}
+					{tool === "zoom" && (
+						<>
+							<span className="flex shrink-0 items-center gap-1 rounded-xl bg-ink/5 px-1.5 py-1">
+								<button
+									type="button"
+									onClick={() => onZoom(1 / ZOOM_STEP)}
+									title="Zoom out"
+									aria-label="Zoom out"
+									className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
+								>
+									<Minus className="size-4" />
+								</button>
+								<span className="min-w-12 text-center text-sm font-semibold tabular-nums text-ink">
+									{Math.round(scale * 100)}%
+								</span>
+								<button
+									type="button"
+									onClick={() => onZoom(ZOOM_STEP)}
+									title="Zoom in"
+									aria-label="Zoom in"
+									className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-ink/10 hover:text-ink"
+								>
+									<Plus className="size-4" />
+								</button>
+							</span>
+							<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
+						</>
+					)}
+					{TOOLS.map((t) => {
+						const active = tool === t.id || (t.id === "voice" && recording);
+						return (
+							<button
+								key={t.id}
+								type="button"
+								onClick={() => pick(t.id)}
+								disabled={disabled && !FREE_TOOLS.includes(t.id)}
+								title={t.label}
+								aria-label={t.label}
+								aria-pressed={active}
+								className={cn(
+									"relative grid size-9 shrink-0 place-items-center rounded-xl transition-all disabled:opacity-40 sm:size-10",
+									active
+										? cn(
+												"-translate-y-1 text-white shadow-md after:absolute after:-top-1 after:left-1/2 after:h-1 after:w-3 after:-translate-x-1/2 after:rounded-full after:bg-black/15",
+												t.id === "voice" && recording
+													? "bg-marker-pink"
+													: "bg-gradient-to-b from-marker-blue to-marker-blue-deep",
+											)
+										: "text-ink-soft hover:bg-ink/5 hover:text-ink",
+								)}
+							>
+								<t.icon className="size-5" />
+							</button>
+						);
+					})}
 
-				{canDelete && (
-					<>
-						<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
+					<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
+
+					{/* current ink, tucked into a compact swatch — tap to open the tray */}
+					<div ref={colorRef} className="relative shrink-0">
 						<button
 							type="button"
-							onClick={onDelete}
-							title="Delete selected"
-							aria-label="Delete selected"
-							className="grid size-9 shrink-0 place-items-center rounded-xl text-marker-pink transition-colors hover:bg-marker-pink/10 sm:size-10"
+							onClick={() => setColorOpen((v) => !v)}
+							title="Marker colour"
+							aria-label="Marker colour"
+							aria-haspopup="menu"
+							aria-expanded={colorOpen}
+							className="grid size-9 place-items-center rounded-xl transition-colors hover:bg-ink/5 sm:size-10"
 						>
-							<Trash2 className="size-5" />
+							<span
+								className="block size-5 shrink-0 rotate-45 rounded-[50%_50%_50%_0] border-2 border-white shadow-sm sm:size-6"
+								style={{ backgroundColor: activeColor }}
+							/>
 						</button>
-					</>
-				)}
+						{colorOpen && (
+							<div
+								role="menu"
+								className="glass-pill absolute bottom-full left-1/2 mb-2 flex -translate-x-1/2 items-center gap-2.5 rounded-full px-3.5 py-2.5"
+							>
+								{MARKER_COLORS.map((c) => (
+									<button
+										key={c.id}
+										type="button"
+										onClick={() => {
+											setColorId(c.id);
+											setColorOpen(false);
+										}}
+										title={`${c.id} marker`}
+										aria-label={`${c.id} marker`}
+										aria-pressed={colorId === c.id}
+										className={cn(
+											"grid place-items-center transition-transform",
+											colorId === c.id
+												? "scale-110"
+												: "opacity-80 hover:opacity-100",
+										)}
+									>
+										<span
+											className={cn(
+												"block size-6 rotate-45 rounded-[50%_50%_50%_0] border-2",
+												colorId === c.id ? "border-ink/40" : "border-white",
+											)}
+											style={{ backgroundColor: c.value }}
+										/>
+									</button>
+								))}
+							</div>
+						)}
+					</div>
+
+					{canDelete && (
+						<>
+							<span className="mx-1 hidden h-7 w-px shrink-0 bg-line sm:block" />
+							<button
+								type="button"
+								onClick={onDelete}
+								title="Delete selected"
+								aria-label="Delete selected"
+								className="grid size-9 shrink-0 place-items-center rounded-xl text-marker-pink transition-colors hover:bg-marker-pink/10 sm:size-10"
+							>
+								<Trash2 className="size-5" />
+							</button>
+						</>
+					)}
+				</div>
 			</div>
 		</div>
 	);

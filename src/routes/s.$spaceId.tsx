@@ -83,8 +83,45 @@ function SpacePage() {
 	}
 
 	return (
-		<div className="flex h-dvh flex-col overflow-hidden bg-paper-2/40">
-			<header className="z-30 flex h-14 items-center justify-between gap-3 border-b border-line bg-paper/85 px-3 backdrop-blur-md sm:px-4">
+		<div className="relative h-dvh overflow-hidden bg-paper-2/40">
+			{/* Canvas region — fills the whole viewport; the header floats above it. */}
+			<div
+				className="absolute inset-0 transition-colors duration-300"
+				style={{
+					backgroundColor: board.bg,
+					backgroundImage: `radial-gradient(${board.dot} 1px, transparent 1.4px)`,
+					backgroundSize: "26px 26px",
+				}}
+			>
+				<ClientOnly>
+					{() => (
+						<SignCanvas
+							ref={canvasRef}
+							space={{
+								id: space.id,
+								slug: space.slug,
+								status: space.status,
+								revealAt: space.revealAt,
+							}}
+							initialMarks={marks}
+							isHost={isHost}
+							sealed={sealed}
+						/>
+					)}
+				</ClientOnly>
+
+				<GiftCard
+					slug={space.slug}
+					gift={{
+						bankName: space.giftBankName,
+						accountNumber: space.giftAccountNumber,
+						accountName: space.giftAccountName,
+					}}
+					isHost={isHost}
+				/>
+			</div>
+
+			<header className="paper-card absolute inset-x-3 top-3 z-40 flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 sm:inset-x-4 sm:px-4">
 				<div className="flex min-w-0 items-center gap-3">
 					<Logo to="/dashboard" />
 					<span className="hidden h-6 w-px bg-line sm:block" />
@@ -153,43 +190,6 @@ function SpacePage() {
 					</Button>
 				</div>
 			</header>
-
-			{/* Canvas region — Konva board mounts client-side over the dotted paper. */}
-			<div
-				className="relative flex-1 overflow-hidden transition-colors duration-300"
-				style={{
-					backgroundColor: board.bg,
-					backgroundImage: `radial-gradient(${board.dot} 1px, transparent 1.4px)`,
-					backgroundSize: "26px 26px",
-				}}
-			>
-				<ClientOnly>
-					{() => (
-						<SignCanvas
-							ref={canvasRef}
-							space={{
-								id: space.id,
-								slug: space.slug,
-								status: space.status,
-								revealAt: space.revealAt,
-							}}
-							initialMarks={marks}
-							isHost={isHost}
-							sealed={sealed}
-						/>
-					)}
-				</ClientOnly>
-
-				<GiftCard
-					slug={space.slug}
-					gift={{
-						bankName: space.giftBankName,
-						accountNumber: space.giftAccountNumber,
-						accountName: space.giftAccountName,
-					}}
-					isHost={isHost}
-				/>
-			</div>
 
 			{shareOpen && (
 				<ShareDialog

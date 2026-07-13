@@ -827,14 +827,14 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				/>
 
 				{/* signing-as chip — pinned to the board like a name tag */}
-				<div className="absolute left-4 top-20 z-20">
+				<div className="absolute left-4 top-20 z-20 max-w-[42vw]">
 					{user ? (
 						<span
 							style={{ "--rot": "-2deg" } as CSSProperties}
-							className="glass-pill pin relative inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft"
+							className="glass-pill pin relative inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft"
 						>
-							<span className="size-2 rounded-full bg-marker-blue" />
-							Signing as {user.name}
+							<span className="size-2 shrink-0 rounded-full bg-marker-blue" />
+							<span className="min-w-0 truncate">Signing as {user.name}</span>
 						</span>
 					) : (
 						ready && (

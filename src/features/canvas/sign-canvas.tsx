@@ -1,4 +1,4 @@
-import type Konva from "konva";
+import Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import {
 	Hand,
@@ -10,7 +10,6 @@ import {
 	Trash2,
 	Type,
 	Undo2,
-	ZoomIn,
 } from "lucide-react";
 import {
 	type CSSProperties,
@@ -50,12 +49,16 @@ import {
 	updateMark,
 } from "#/server/marks.ts";
 
+// Keep firing stage touch events while the stage is being dragged — otherwise a
+// pinch that starts during a one-finger pan (Move tool) never reaches
+// handlePinch, because Konva suppresses events on a dragging node by default.
+Konva.hitOnDragEnabled = true;
+
 const TOOLS: { id: ToolId; label: string; icon: typeof PenLine }[] = [
-	{ id: "move", label: "Move", icon: Hand },
+	{ id: "move", label: "Move & zoom", icon: Hand },
 	{ id: "pen", label: "Pen", icon: PenLine },
 	{ id: "text", label: "Text", icon: Type },
 	{ id: "voice", label: "Voice note", icon: Mic },
-	{ id: "zoom", label: "Zoom", icon: ZoomIn },
 ];
 
 const ZOOM_STEP = 1.25;
@@ -118,6 +121,9 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 			dist: number;
 			center: { x: number; y: number };
 		} | null>(null);
+		// True from the moment a second finger lands until the next single-finger
+		// gesture begins, so pointer-up handlers don't treat a pinch as a tap.
+		const multiTouchRef = useRef(false);
 		const textareaRef = useRef<HTMLTextAreaElement>(null);
 		const textWasOpenRef = useRef(false);
 		const textOpenedAtRef = useRef(0);
@@ -465,6 +471,16 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 
 		// ---- pointer dispatch --------------------------------------------------
 		function onPointerDown(e: KonvaEventObject<PointerEvent>) {
+			// A second finger turns the gesture into navigation (pinch zoom/pan):
+			// cancel any partial stroke — never commit it — and stop treating the
+			// touch as a tool action until every finger lifts.
+			if (e.evt.pointerType === "touch" && !e.evt.isPrimary) {
+				multiTouchRef.current = true;
+				draftRef.current = null;
+				tick();
+				return;
+			}
+			multiTouchRef.current = false;
 			// Remember whether a text box was open as the tap began: tapping the canvas
 			// blurs (commits) it, so by pointer-up textDraft is already null — this lets
 			// us tell "commit the open box" from "place a new one".
@@ -477,6 +493,10 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		}
 
 		function onPointerUp() {
+			// Fingers lifting off a pinch are not taps — don't commit a stroke or
+			// spawn a text box. (Fires once per finger, so don't reset the flag here;
+			// the next primary pointer-down does.)
+			if (multiTouchRef.current) return;
 			endStroke();
 			// Create the text box on tap-up so focus() lands inside the gesture (mobile
 			// keyboard). Skip if this tap was just dismissing an already-open box.
@@ -740,12 +760,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 							}
 						}}
 						style={{
-							cursor:
-								tool === "move"
-									? "grab"
-									: tool === "zoom"
-										? "zoom-in"
-										: "crosshair",
+							cursor: tool === "move" ? "grab" : "crosshair",
 						}}
 					>
 						<Layer>
@@ -901,6 +916,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 					}
 					scale={scale}
 					onZoom={zoomBy}
+					onZoomReset={() => zoomBy(1 / scale)}
 					canUndo={undoStack.length > 0}
 					onUndo={undo}
 					canRedo={redoStack.length > 0}
@@ -920,13 +936,13 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		// free zoom during the gesture, then commit the final scale/position to React
 		// state on touch-end so it stays the source of truth between gestures.
 		function handlePinch(e: KonvaEventObject<TouchEvent>) {
-			if (tool !== "zoom") return; // zooming is scoped to the Zoom tool
 			const touches = e.evt.touches;
 			if (touches.length < 2) return;
 			e.evt.preventDefault();
 			const stage = stageRef.current;
 			if (!stage) return;
 			if (stage.isDragging()) stage.stopDrag();
+			multiTouchRef.current = true;
 			draftRef.current = null; // a two-finger gesture is a zoom, not a stroke
 
 			const rect = stage.container().getBoundingClientRect();
@@ -979,7 +995,6 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		}
 
 		function handleWheel(e: KonvaEventObject<WheelEvent>) {
-			if (tool !== "zoom") return; // zooming is scoped to the Zoom tool
 			e.evt.preventDefault();
 			const pointer = stageRef.current?.getPointerPosition();
 			if (!pointer) return;
@@ -1010,6 +1025,7 @@ function Dock({
 	setFontSize,
 	scale,
 	onZoom,
+	onZoomReset,
 	canUndo,
 	onUndo,
 	canRedo,
@@ -1029,6 +1045,7 @@ function Dock({
 	setFontSize: (n: number) => void;
 	scale: number;
 	onZoom: (factor: number) => void;
+	onZoomReset: () => void;
 	canUndo: boolean;
 	onUndo: () => void;
 	canRedo: boolean;
@@ -1038,8 +1055,8 @@ function Dock({
 	onRequireAuth: () => void;
 	onPick: (t: ToolId) => void;
 }) {
-	// Move and zoom are navigation tools — usable without signing in or when locked.
-	const FREE_TOOLS: ToolId[] = ["move", "zoom"];
+	// Move is a navigation tool — usable without signing in or when locked.
+	const FREE_TOOLS: ToolId[] = ["move"];
 	function pick(id: ToolId) {
 		if (!FREE_TOOLS.includes(id) && !canSign) {
 			onRequireAuth();
@@ -1133,7 +1150,7 @@ function Dock({
 							</button>
 						</div>
 					)}
-					{tool === "zoom" && (
+					{tool === "move" && (
 						<div className="glass-pill absolute bottom-full left-1/2 mb-2 flex -translate-x-1/2 items-center gap-1 rounded-full px-2 py-1.5">
 							<button
 								type="button"
@@ -1144,9 +1161,15 @@ function Dock({
 							>
 								<Minus className="size-4" />
 							</button>
-							<span className="min-w-12 text-center text-sm font-semibold tabular-nums text-ink">
+							<button
+								type="button"
+								onClick={onZoomReset}
+								title="Reset zoom"
+								aria-label="Reset zoom to 100%"
+								className="min-w-12 rounded-full px-1 text-center text-sm font-semibold tabular-nums text-ink hover:bg-ink/10"
+							>
 								{Math.round(scale * 100)}%
-							</span>
+							</button>
 							<button
 								type="button"
 								onClick={() => onZoom(ZOOM_STEP)}

@@ -4,7 +4,15 @@ import {
 	notFound,
 	useRouter,
 } from "@tanstack/react-router";
-import { Link2, Loader2, Lock, LockOpen, Palette, Shirt } from "lucide-react";
+import {
+	CircleHelp,
+	Link2,
+	Loader2,
+	Lock,
+	LockOpen,
+	Palette,
+	Shirt,
+} from "lucide-react";
 import { lazy, useEffect, useRef, useState } from "react";
 
 import { Logo } from "#/components/logo.tsx";
@@ -15,7 +23,13 @@ import { ExportPicker } from "#/features/canvas/export-picker.tsx";
 import type { SignCanvasHandle } from "#/features/canvas/sign-canvas.tsx";
 import { GiftCard } from "#/features/gift/gift-card.tsx";
 import { ShareDialog } from "#/features/share/share-dialog.tsx";
+import {
+	buildSpaceTourSteps,
+	useSpaceTour,
+} from "#/features/tour/space-tour.ts";
+import { SpotlightTour } from "#/features/tour/spotlight-tour.tsx";
 import { BOARD_COLORS, boardColorById } from "#/lib/board-colors.ts";
+import { hasGift } from "#/lib/gift.ts";
 import { pageMeta } from "#/lib/seo.ts";
 import { cn } from "#/lib/utils.ts";
 import { getSpaceBySlug, lockSpace, setBoardColor } from "#/server/spaces.ts";
@@ -27,6 +41,12 @@ export const Route = createFileRoute("/s/$spaceId")({
 	// /s/<slug> link unfurls with the board's title + mark count), but skip
 	// server-rendering the component — the Konva canvas is client-only.
 	ssr: "data-only",
+	validateSearch: (search: Record<string, unknown>): { welcome?: boolean } => ({
+		welcome:
+			search.welcome === true || search.welcome === 1 || search.welcome === "1"
+				? true
+				: undefined,
+	}),
 	loader: async ({ params }) => {
 		const data = await getSpaceBySlug({ data: params.spaceId });
 		if (!data) throw notFound();
@@ -61,6 +81,8 @@ function SpacePage() {
 	const canvasRef = useRef<SignCanvasHandle>(null);
 	const locked = space.status === "locked";
 	const board = boardColorById(boardColorId);
+	const { welcome } = Route.useSearch();
+	const tour = useSpaceTour({ welcome: welcome === true });
 
 	async function changeBoardColor(id: string) {
 		const prev = boardColorId;
@@ -119,6 +141,17 @@ function SpacePage() {
 					}}
 					isHost={isHost}
 				/>
+
+				{/* Replay the tour — tucked bottom-left, clear of the dock and chips. */}
+				<button
+					type="button"
+					onClick={tour.start}
+					title="Replay the tour"
+					aria-label="Replay the tour"
+					className="glass-pill absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 z-20 grid size-9 place-items-center rounded-full text-ink-soft transition-colors hover:bg-card hover:text-ink"
+				>
+					<CircleHelp className="size-4.5" />
+				</button>
 			</div>
 
 			<header className="paper-card absolute inset-x-3 top-3 z-40 flex items-center justify-between gap-2 rounded-2xl px-2.5 py-2 sm:inset-x-4 sm:gap-3 sm:px-4 sm:py-2.5">
@@ -144,6 +177,7 @@ function SpacePage() {
 					<Button
 						variant="outline"
 						size="sm"
+						data-tour="share"
 						onClick={() => setShareOpen(true)}
 					>
 						<Link2 className="size-4" />
@@ -159,6 +193,7 @@ function SpacePage() {
 						<Button
 							variant="outline"
 							size="sm"
+							data-tour="lock"
 							onClick={toggleLock}
 							disabled={locking}
 						>
@@ -202,6 +237,21 @@ function SpacePage() {
 					onClose={() => setShareOpen(false)}
 				/>
 			)}
+
+			{tour.active && (
+				<SpotlightTour
+					steps={buildSpaceTourSteps({
+						isHost,
+						hasGift: hasGift({
+							bankName: space.giftBankName,
+							accountNumber: space.giftAccountNumber,
+							accountName: space.giftAccountName,
+						}),
+					})}
+					onFinish={tour.dismiss}
+					onSkip={tour.dismiss}
+				/>
+			)}
 		</div>
 	);
 }
@@ -241,6 +291,7 @@ function BoardColorPicker({
 			<Button
 				variant="outline"
 				size="sm"
+				data-tour="board-color"
 				onClick={() => setOpen((v) => !v)}
 				aria-haspopup="menu"
 				aria-expanded={open}

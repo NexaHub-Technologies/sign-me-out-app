@@ -1105,7 +1105,10 @@ function Dock({
 						background: `radial-gradient(closest-side, ${activeColor}4d, transparent 72%)`,
 					}}
 				/>
-				<div className="paper-card relative flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl p-1.5">
+				<div
+					data-tour="dock"
+					className="paper-card relative flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl p-1.5"
+				>
 					{/* the tray's latch — a small nub, like a pencil case clasp */}
 					<span
 						aria-hidden
@@ -1196,6 +1199,7 @@ function Dock({
 							<button
 								key={t.id}
 								type="button"
+								data-tour={`tool-${t.id}`}
 								onClick={() => pick(t.id)}
 								disabled={disabled && !FREE_TOOLS.includes(t.id)}
 								title={t.label}
@@ -1224,6 +1228,7 @@ function Dock({
 					<div ref={colorRef} className="relative shrink-0">
 						<button
 							type="button"
+							data-tour="marker-color"
 							onClick={() => setColorOpen((v) => !v)}
 							title="Marker colour"
 							aria-label="Marker colour"

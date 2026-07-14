@@ -104,7 +104,11 @@ function CreatePage() {
 								revealAt: revealAt || undefined,
 							},
 						});
-						navigate({ to: "/s/$spaceId", params: { spaceId: slug } });
+						navigate({
+							to: "/s/$spaceId",
+							params: { spaceId: slug },
+							search: { welcome: true },
+						});
 					} catch (err) {
 						setError(
 							err instanceof Error

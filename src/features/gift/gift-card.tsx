@@ -53,7 +53,10 @@ export function GiftCard({
 	if (!gift && !isHost) return null;
 
 	return (
-		<div className="absolute right-3 top-20 z-20 flex w-[min(20rem,calc(100vw-1.5rem))] flex-col items-end">
+		<div
+			data-tour="gift"
+			className="absolute right-3 top-20 z-20 flex w-[min(20rem,calc(100vw-1.5rem))] flex-col items-end"
+		>
 			{gift ? (
 				open ? (
 					<GiftPanel

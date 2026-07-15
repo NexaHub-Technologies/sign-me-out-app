@@ -1,5 +1,5 @@
 import { Bug, Heart, Lightbulb, Loader2, MessageCircle, X } from "lucide-react";
-import { type FormEvent, useEffect, useState } from "react";
+import { type SubmitEvent, useEffect, useState } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
@@ -48,7 +48,7 @@ export function FeedbackDialog({
 
 	if (!open) return null;
 
-	async function onSubmit(e: FormEvent) {
+	async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setError(null);
 		if (!message.trim()) {

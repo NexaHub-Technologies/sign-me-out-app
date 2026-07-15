@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Gift, Loader2, Lock } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 
 import {
 	EMPTY_GIFT,
@@ -11,6 +11,7 @@ import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import { Label } from "#/components/ui/label.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
+import { UniversitySelect } from "#/components/university-select.tsx";
 import { BOARD_COLORS, boardColorById } from "#/lib/board-colors.ts";
 import { normalizeGift } from "#/lib/gift.ts";
 import {
@@ -39,6 +40,7 @@ function CreatePage() {
 	const [templateId, setTemplateId] = useState(DEFAULT_TEMPLATE.id);
 	const [color, setColor] = useState(DEFAULT_TEMPLATE.boardColor);
 	const [note, setNote] = useState(DEFAULT_TEMPLATE.defaultNote);
+	const [university, setUniversity] = useState("");
 	const [revealAt, setRevealAt] = useState("");
 	const [giftOpen, setGiftOpen] = useState(false);
 	const [gift, setGift] = useState<GiftFormValue>(EMPTY_GIFT);
@@ -63,7 +65,7 @@ function CreatePage() {
 		setNote(t.defaultNote);
 	}
 
-	async function onSubmit(e: FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setError(null);
 		const form = new FormData(e.currentTarget);
@@ -99,6 +101,7 @@ function CreatePage() {
 								title,
 								note,
 								boardColor: color,
+								university: university || undefined,
 								gift: giftInput ?? undefined,
 								paymentReference: reference,
 								revealAt: revealAt || undefined,
@@ -177,6 +180,18 @@ function CreatePage() {
 						required
 						placeholder={tpl.titlePlaceholder}
 						className="h-12 bg-card text-base"
+					/>
+				</div>
+
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="university">
+						What university are you signing out from?{" "}
+						<span className="text-ink-faint">(optional)</span>
+					</Label>
+					<UniversitySelect
+						id="university"
+						value={university}
+						onChange={setUniversity}
 					/>
 				</div>
 

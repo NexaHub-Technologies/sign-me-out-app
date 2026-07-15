@@ -35,6 +35,7 @@ export const createSpace = createServerFn({ method: "POST" })
 			title: string;
 			note?: string;
 			boardColor?: string;
+			university?: string;
 			gift?: GiftInput;
 			paymentReference: string;
 			revealAt?: string;
@@ -62,6 +63,7 @@ export const createSpace = createServerFn({ method: "POST" })
 				title,
 				note: input.note?.trim() || null,
 				boardColor,
+				university: input.university?.trim().slice(0, 120) || null,
 				gift: normalizeGift(input.gift ?? {}),
 				paymentReference,
 				revealAt,
@@ -84,6 +86,7 @@ export const createSpace = createServerFn({ method: "POST" })
 				title: data.title,
 				note: data.note,
 				boardColor: data.boardColor,
+				university: data.university,
 				giftBankName: data.gift?.bankName ?? null,
 				giftAccountNumber: data.gift?.accountNumber ?? null,
 				giftAccountName: data.gift?.accountName ?? null,

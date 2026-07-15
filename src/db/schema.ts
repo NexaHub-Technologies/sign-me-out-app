@@ -23,6 +23,10 @@ export const signSpaces = pgTable(
 		title: text().notNull(),
 		note: text(),
 		boardColor: text("board_color").default("paper").notNull(),
+		// The university the host is signing out from (a display name from
+		// lib/universities.ts). Optional — non-graduation occasions skip it.
+		// Kept as free text so per-university counts survive list edits.
+		university: text(),
 		// Optional "sign with a gift" — a bank account signers can copy to send a
 		// cash gift. All three are set together or all null (see lib/gift.ts).
 		giftBankName: text("gift_bank_name"),

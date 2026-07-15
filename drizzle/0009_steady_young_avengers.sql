@@ -1,0 +1,1 @@
+ALTER TABLE "sign_spaces" ADD COLUMN "university" text;

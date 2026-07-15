@@ -35,13 +35,17 @@ export const createSpace = createServerFn({ method: "POST" })
 			title: string;
 			note?: string;
 			boardColor?: string;
-			university?: string;
+			university: string;
 			gift?: GiftInput;
 			paymentReference: string;
 			revealAt?: string;
 		}) => {
 			const title = input.title?.trim();
 			if (!title) throw new Error("A space name is required");
+			const university = input.university?.trim().slice(0, 120);
+			if (!university) {
+				throw new Error("Select the university you're signing out from");
+			}
 			const paymentReference = input.paymentReference?.trim();
 			if (!paymentReference) throw new Error("Payment is required");
 			const boardColor = BOARD_COLOR_IDS.includes(input.boardColor ?? "")
@@ -63,7 +67,7 @@ export const createSpace = createServerFn({ method: "POST" })
 				title,
 				note: input.note?.trim() || null,
 				boardColor,
-				university: input.university?.trim().slice(0, 120) || null,
+				university,
 				gift: normalizeGift(input.gift ?? {}),
 				paymentReference,
 				revealAt,

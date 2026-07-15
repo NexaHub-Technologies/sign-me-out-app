@@ -24,7 +24,8 @@ export const signSpaces = pgTable(
 		note: text(),
 		boardColor: text("board_color").default("paper").notNull(),
 		// The university the host is signing out from (a display name from
-		// lib/universities.ts). Optional — non-graduation occasions skip it.
+		// lib/universities.ts). Required for new spaces (enforced in createSpace);
+		// nullable only because spaces created before the column existed have none.
 		// Kept as free text so per-university counts survive list edits.
 		university: text(),
 		// Optional "sign with a gift" — a bank account signers can copy to send a

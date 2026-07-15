@@ -74,6 +74,10 @@ function CreatePage() {
 			setError("A space name is required");
 			return;
 		}
+		if (!university) {
+			setError("Select the university you're signing out from");
+			return;
+		}
 		// Validate the optional gift up front (before charging) so a malformed
 		// account never blocks between payment and space creation.
 		let giftInput: GiftFormValue | null;
@@ -101,7 +105,7 @@ function CreatePage() {
 								title,
 								note,
 								boardColor: color,
-								university: university || undefined,
+								university,
 								gift: giftInput ?? undefined,
 								paymentReference: reference,
 								revealAt: revealAt || undefined,
@@ -185,8 +189,7 @@ function CreatePage() {
 
 				<div className="flex flex-col gap-2">
 					<Label htmlFor="university">
-						What university are you signing out from?{" "}
-						<span className="text-ink-faint">(optional)</span>
+						What university are you signing out from?
 					</Label>
 					<UniversitySelect
 						id="university"

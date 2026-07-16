@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+	boolean,
 	index,
 	integer,
 	jsonb,
@@ -37,6 +38,9 @@ export const signSpaces = pgTable(
 		// The authenticated creator, when signed in — lets a host see their spaces
 		// across devices. Null for spaces created by a cookie-only (anonymous) host.
 		ownerId: uuid("owner_id"),
+		// Free-tier boards cap at FREE_MARK_LIMIT marks and have no exports/voice.
+		// Flipped true when the host pays the per-space unlock (see payments-core).
+		isPremium: boolean("is_premium").default(false).notNull(),
 		status: text().default("open").notNull(), // 'open' | 'locked'
 		// Time-capsule: while reveal_at is in the future, non-hosts see a countdown
 		// (they can still sign, but the board stays sealed). Null = not a capsule.
@@ -117,10 +121,10 @@ export const marks = pgTable(
 ).enableRLS();
 
 /**
- * One row per space-creation payment (₦1,000 via Paystack). Created `pending`
- * when checkout starts, flipped to `success` once verified, and consumed
- * (spaceId set) when the paid-for space is created — a reference is single-use.
- * Written only server-side via the Drizzle service connection.
+ * One row per space-unlock payment via Paystack (₦1,200 first unlock, ₦1,000
+ * after — see lib/plan.ts). Inserted only after Paystack verifies the charge,
+ * with `spaceId` set at that moment — the row's existence means the reference
+ * is consumed. Written only server-side via the Drizzle service connection.
  */
 export const payments = pgTable(
 	"payments",
@@ -128,10 +132,11 @@ export const payments = pgTable(
 		id: uuid().defaultRandom().primaryKey().notNull(),
 		reference: text().notNull(), // Paystack reference we generate (smo_…)
 		email: text().notNull(),
-		amount: integer().notNull(), // kobo; expected 100000 (₦1,000)
+		amount: integer().notNull(), // kobo; 120000 (first unlock) or 100000
 		status: text().default("pending").notNull(), // 'pending' | 'success' | 'failed'
 		ownerId: uuid("owner_id"),
-		// Set when the payment is consumed by creating a space — null = unused.
+		// The space this payment unlocked. Nulled if that space is later deleted,
+		// but the row itself still marks the reference as spent.
 		spaceId: uuid("space_id").references(() => signSpaces.id, {
 			onDelete: "set null",
 		}),
@@ -212,6 +217,12 @@ export const profiles = pgTable("profiles", {
 	id: uuid().primaryKey().notNull(),
 	fullName: text("full_name"),
 	avatarUrl: text("avatar_url"),
+	// Stamped by the user's first ₦1,200 space unlock. Null = they can only
+	// hold their one free board; set = they may open any number of boards.
+	spacesUnlockedAt: timestamp("spaces_unlocked_at", {
+		withTimezone: true,
+		mode: "string",
+	}),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
 		.defaultNow()
 		.notNull(),

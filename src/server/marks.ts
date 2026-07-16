@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 
 import { db } from "#/db/index.ts";
 import { marks, signSpaces } from "#/db/schema.ts";
+import { assertMarkAllowed } from "#/lib/plan.ts";
 import { getSessionUser, isSpaceHost } from "#/server/auth.ts";
 import { signVoiceUrl } from "#/server/storage.ts";
 
@@ -45,12 +46,27 @@ export const addMark = createServerFn({ method: "POST" })
 		if (!user) throw new Error("Sign in to leave a mark");
 
 		const [space] = await db
-			.select({ id: signSpaces.id, status: signSpaces.status })
+			.select({
+				id: signSpaces.id,
+				status: signSpaces.status,
+				isPremium: signSpaces.isPremium,
+			})
 			.from(signSpaces)
 			.where(eq(signSpaces.id, data.spaceId))
 			.limit(1);
 		if (!space) throw new Error("Space not found");
 		if (space.status !== "open") throw new Error("This space is locked");
+
+		// Free-tier boards: no voice notes, and at most FREE_MARK_LIMIT visible
+		// marks. Check-then-insert is racy under a simultaneous burst of signers
+		// (a couple of extras can slip in) — acceptable for a soft cap.
+		if (!space.isPremium) {
+			const [{ visible }] = await db
+				.select({ visible: count() })
+				.from(marks)
+				.where(and(eq(marks.spaceId, space.id), eq(marks.status, "visible")));
+			assertMarkAllowed(data.kind, space.isPremium, visible);
+		}
 
 		const [mark] = await db
 			.insert(marks)

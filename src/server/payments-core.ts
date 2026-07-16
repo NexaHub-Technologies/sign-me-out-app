@@ -1,10 +1,15 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 import { db } from "#/db/index.ts";
-import { merchOrders, payments } from "#/db/schema.ts";
+import { merchOrders, payments, profiles, signSpaces } from "#/db/schema.ts";
 import { PRODUCTS } from "#/lib/order-options.ts";
-import { getSessionUser } from "#/server/auth.ts";
+import {
+	FIRST_UNLOCK_PRICE_KOBO,
+	UNLOCK_PRICE_KOBO,
+	unlockPriceKobo,
+} from "#/lib/plan.ts";
+import { getSessionUser, isSpaceHost } from "#/server/auth.ts";
 
 /**
  * Server-only payment logic. Kept out of `payments.ts` (which exposes a
@@ -18,9 +23,6 @@ import { getSessionUser } from "#/server/auth.ts";
  * tables hold paid rows only.
  */
 
-/** One-time charge to open a sign-out space, in kobo (₦1,000). */
-export const PRICE_KOBO = 100_000;
-
 const PAYSTACK = "https://api.paystack.co";
 
 function secretKey(): string {
@@ -33,6 +35,7 @@ type PaystackMetadata = {
 	userId?: string;
 	purpose?: string;
 	productId?: string;
+	spaceId?: string;
 };
 
 type VerifiedTxn = {
@@ -70,20 +73,40 @@ async function verifyPaystack(reference: string): Promise<VerifiedTxn> {
 }
 
 /**
- * Start a Paystack transaction for opening a space. Requires a signed-in user
- * (we charge their account email). Returns the access code the browser popup
- * resumes, plus our reference. No DB row is written yet — that happens only
- * after the payment is verified (see `assertSpacePaymentPaid`).
+ * Start a Paystack transaction to unlock a space (full features; the first
+ * unlock also opens multi-board creation, hence its higher price). Host-only,
+ * and the host must be signed in (we charge their account email). Returns the
+ * access code the browser popup resumes, our reference, and the quoted amount.
+ * No DB row is written yet — that happens only after the payment is verified
+ * (see `recordSpaceUnlock`).
  */
-export async function createSpacePayment(): Promise<{
+export async function createSpaceUnlockPayment(slug: string): Promise<{
 	accessCode: string;
 	reference: string;
+	amountKobo: number;
 }> {
 	const user = await getSessionUser();
-	if (!user) throw new Error("Sign in to open a space");
+	if (!user) throw new Error("Sign in to unlock this board");
 	if (!user.email) throw new Error("Your account has no email for payment");
 
-	const reference = `smo_${nanoid(20)}`;
+	const [space] = await db
+		.select({
+			id: signSpaces.id,
+			isPremium: signSpaces.isPremium,
+			hostToken: signSpaces.hostToken,
+			ownerId: signSpaces.ownerId,
+		})
+		.from(signSpaces)
+		.where(eq(signSpaces.slug, slug))
+		.limit(1);
+	if (!space) throw new Error("Space not found");
+	if (!isSpaceHost(space, user)) {
+		throw new Error("Only the host can unlock this board");
+	}
+	if (space.isPremium) throw new Error("This board is already unlocked");
+
+	const amount = unlockPriceKobo(await hasAccountUnlock(user.id));
+	const reference = `smo_unlock_${nanoid(16)}`;
 
 	const res = await fetch(`${PAYSTACK}/transaction/initialize`, {
 		method: "POST",
@@ -93,10 +116,10 @@ export async function createSpacePayment(): Promise<{
 		},
 		body: JSON.stringify({
 			email: user.email,
-			amount: PRICE_KOBO,
+			amount,
 			currency: "NGN",
 			reference,
-			metadata: { userId: user.id, purpose: "create_space" },
+			metadata: { userId: user.id, purpose: "unlock_space", spaceId: space.id },
 		}),
 	});
 	const body = (await res.json()) as {
@@ -108,25 +131,66 @@ export async function createSpacePayment(): Promise<{
 		throw new Error(body.message || "Could not start payment");
 	}
 
-	return { accessCode: body.data.access_code, reference };
+	return { accessCode: body.data.access_code, reference, amountKobo: amount };
+}
+
+/** Whether the user's first ₦1,200 unlock has already happened. */
+async function hasAccountUnlock(userId: string): Promise<boolean> {
+	const [profile] = await db
+		.select({ spacesUnlockedAt: profiles.spacesUnlockedAt })
+		.from(profiles)
+		.where(eq(profiles.id, userId))
+		.limit(1);
+	return !!profile?.spacesUnlockedAt;
 }
 
 /**
- * Verify a space payment with Paystack and record it (deferred insert). Throws
- * unless the transaction succeeded, paid exactly PRICE_KOBO, was started by this
- * user, and hasn't already been consumed by a space. Safe to call more than
- * once — the insert is idempotent (unique reference).
+ * Verify an unlock payment with Paystack and apply it: record the payment
+ * (deferred insert, `spaceId` set immediately — the row's existence spends the
+ * reference), flip the space premium, and stamp the payer's account unlock if
+ * this was their first. Throws unless the transaction succeeded, was started
+ * by this user for this space, and paid an unlock price — a still-locked
+ * account must have paid the first-unlock amount. Safe to call more than once
+ * for the same space (idempotent retry of a flaky completion).
  */
-export async function assertSpacePaymentPaid(
+export async function recordSpaceUnlock(
 	reference: string,
-	user: { id: string; email: string | null },
+	slug: string,
 ): Promise<void> {
+	const user = await getSessionUser();
+	if (!user) throw new Error("Sign in to unlock this board");
+
+	const [space] = await db
+		.select({ id: signSpaces.id })
+		.from(signSpaces)
+		.where(eq(signSpaces.slug, slug))
+		.limit(1);
+	if (!space) throw new Error("Space not found");
+
 	const txn = await verifyPaystack(reference);
-	if (txn.amount !== PRICE_KOBO) {
+	if (txn.metadata?.purpose !== "unlock_space") {
+		throw new Error("This payment was for something else");
+	}
+	if (txn.metadata.userId !== user.id) {
+		throw new Error("This payment belongs to another account");
+	}
+	if (txn.metadata.spaceId !== space.id) {
+		throw new Error("This payment was for a different board");
+	}
+	if (
+		txn.amount !== FIRST_UNLOCK_PRICE_KOBO &&
+		txn.amount !== UNLOCK_PRICE_KOBO
+	) {
 		throw new Error("Payment amount did not match");
 	}
-	if (txn.metadata?.userId && txn.metadata.userId !== user.id) {
-		throw new Error("This payment belongs to another account");
+	// A quoted price can only drop between init and verify (an account unlock
+	// never reverts), so a still-locked account paying the lower price means a
+	// tampered charge, not a stale quote.
+	if (
+		txn.amount !== FIRST_UNLOCK_PRICE_KOBO &&
+		!(await hasAccountUnlock(user.id))
+	) {
+		throw new Error("Payment amount did not match");
 	}
 
 	// Record the verified payment now (not when checkout started). Idempotent:
@@ -136,9 +200,10 @@ export async function assertSpacePaymentPaid(
 		.values({
 			reference,
 			email: txn.email || user.email || "",
-			amount: PRICE_KOBO,
+			amount: txn.amount,
 			status: "success",
 			ownerId: user.id,
+			spaceId: space.id,
 		})
 		.onConflictDoNothing();
 
@@ -151,18 +216,29 @@ export async function assertSpacePaymentPaid(
 	if (row.ownerId && row.ownerId !== user.id) {
 		throw new Error("This payment belongs to another account");
 	}
-	if (row.spaceId) throw new Error("This payment has already been used");
-}
+	// A row pointing elsewhere (or nulled by a deleted space) is already spent.
+	if (row.spaceId !== space.id) {
+		throw new Error("This payment has already been used");
+	}
 
-/** Consume a verified payment by tying it to the space it paid for. */
-export async function consumeSpacePayment(
-	reference: string,
-	spaceId: string,
-): Promise<void> {
-	await db
-		.update(payments)
-		.set({ spaceId, updatedAt: new Date().toISOString() })
-		.where(eq(payments.reference, reference));
+	const now = new Date().toISOString();
+	await db.transaction(async (tx) => {
+		await tx
+			.update(signSpaces)
+			.set({ isPremium: true, updatedAt: now })
+			.where(eq(signSpaces.id, space.id));
+		// First unlock stamps the account; later unlocks leave the stamp alone.
+		// Upsert so a profile row missing its auth trigger still gets stamped.
+		await tx
+			.insert(profiles)
+			.values({ id: user.id, spacesUnlockedAt: now })
+			.onConflictDoUpdate({
+				target: profiles.id,
+				set: {
+					spacesUnlockedAt: sql`coalesce(${profiles.spacesUnlockedAt}, ${now})`,
+				},
+			});
+	});
 }
 
 // ---------------------------------------------------------------------------

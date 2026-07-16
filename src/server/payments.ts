@@ -2,17 +2,39 @@ import { createServerFn } from "@tanstack/react-start";
 
 import {
 	createMerchPayment,
-	createSpacePayment,
+	createSpaceUnlockPayment,
+	recordSpaceUnlock,
 } from "#/server/payments-core.ts";
 
 /**
- * Start the ₦1,000 Paystack transaction for opening a space. Client-importable:
- * the handler (and its server-only `db` imports via payments-core) is stripped
- * from the browser bundle and called over RPC. Keep this module server-fn-only.
+ * Start the Paystack transaction that unlocks a board (₦1,200 first unlock,
+ * ₦1,000 after — priced server-side). Client-importable: the handler (and its
+ * server-only `db` imports via payments-core) is stripped from the browser
+ * bundle and called over RPC. Keep this module server-fn-only.
  */
-export const initSpacePayment = createServerFn({ method: "POST" }).handler(
-	async () => createSpacePayment(),
-);
+export const initSpaceUnlock = createServerFn({ method: "POST" })
+	.inputValidator((input: { slug: string }) => {
+		const slug = input.slug?.trim();
+		if (!slug) throw new Error("Missing space");
+		return { slug };
+	})
+	.handler(async ({ data }) => createSpaceUnlockPayment(data.slug));
+
+/**
+ * Verify a completed unlock payment and apply it — the board goes premium and
+ * a first-ever unlock also opens multi-board creation for the payer.
+ */
+export const completeSpaceUnlock = createServerFn({ method: "POST" })
+	.inputValidator((input: { slug: string; reference: string }) => {
+		const slug = input.slug?.trim();
+		const reference = input.reference?.trim();
+		if (!slug || !reference) throw new Error("Missing space or reference");
+		return { slug, reference };
+	})
+	.handler(async ({ data }) => {
+		await recordSpaceUnlock(data.reference, data.slug);
+		return { ok: true as const };
+	});
 
 /**
  * Start a Paystack transaction for a merchandise order. The total is calculated

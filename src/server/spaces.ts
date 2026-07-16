@@ -3,19 +3,16 @@ import { and, asc, count, countDistinct, desc, eq, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 import { db } from "#/db/index.ts";
-import { marks, payments, signSpaces } from "#/db/schema.ts";
+import { marks, profiles, signSpaces } from "#/db/schema.ts";
 import { BOARD_COLOR_IDS } from "#/lib/board-colors.ts";
 import { type GiftInput, normalizeGift } from "#/lib/gift.ts";
+import { unlockPriceKobo } from "#/lib/plan.ts";
 import {
 	ensureHostToken,
 	getHostToken,
 	getSessionUser,
 	isSpaceHost,
 } from "#/server/auth.ts";
-import {
-	assertSpacePaymentPaid,
-	consumeSpacePayment,
-} from "#/server/payments-core.ts";
 import { isSealed, maybeRevealSpace } from "#/server/reveal-core.ts";
 import { deleteSpaceMedia } from "#/server/storage.ts";
 
@@ -37,7 +34,6 @@ export const createSpace = createServerFn({ method: "POST" })
 			boardColor?: string;
 			university: string;
 			gift?: GiftInput;
-			paymentReference: string;
 			revealAt?: string;
 		}) => {
 			const title = input.title?.trim();
@@ -46,8 +42,6 @@ export const createSpace = createServerFn({ method: "POST" })
 			if (!university) {
 				throw new Error("Select the university you're signing out from");
 			}
-			const paymentReference = input.paymentReference?.trim();
-			if (!paymentReference) throw new Error("Payment is required");
 			const boardColor = BOARD_COLOR_IDS.includes(input.boardColor ?? "")
 				? (input.boardColor as string)
 				: "paper";
@@ -69,18 +63,21 @@ export const createSpace = createServerFn({ method: "POST" })
 				boardColor,
 				university,
 				gift: normalizeGift(input.gift ?? {}),
-				paymentReference,
 				revealAt,
 			};
 		},
 	)
 	.handler(async ({ data }) => {
-		// Opening a space is gated on a paid Paystack transaction. The user must be
-		// signed in (we charge their account), and the reference must verify as a
-		// completed ₦1,000 payment that hasn't already been used for a space.
+		// Every account gets one free (limited) board. Opening more takes the
+		// first ₦1,200 unlock, which stamps profiles.spaces_unlocked_at.
 		const user = await getSessionUser();
 		if (!user) throw new Error("Sign in to open a space");
-		await assertSpacePaymentPaid(data.paymentReference, user);
+		const { canCreate } = await createEligibility(user.id);
+		if (!canCreate) {
+			throw new Error(
+				"Unlock one of your boards to open more — your first unlock (₦1,200) also opens unlimited boards",
+			);
+		}
 
 		const hostToken = ensureHostToken();
 		const [space] = await db
@@ -100,9 +97,51 @@ export const createSpace = createServerFn({ method: "POST" })
 			})
 			.returning({ id: signSpaces.id, slug: signSpaces.slug });
 
-		await consumeSpacePayment(data.paymentReference, space.id);
 		return { slug: space.slug };
 	});
+
+/**
+ * Whether this account may open another board: yes while it holds none, and
+ * always once its first unlock stamped the profile. When blocked, also pick
+ * the newest still-locked board as the natural "unlock this one" target.
+ */
+async function createEligibility(userId: string): Promise<{
+	canCreate: boolean;
+	upgradeTarget: { slug: string; title: string } | null;
+}> {
+	const owned = await db
+		.select({
+			slug: signSpaces.slug,
+			title: signSpaces.title,
+			isPremium: signSpaces.isPremium,
+		})
+		.from(signSpaces)
+		.where(eq(signSpaces.ownerId, userId))
+		.orderBy(desc(signSpaces.updatedAt));
+	if (owned.length === 0) return { canCreate: true, upgradeTarget: null };
+
+	const [profile] = await db
+		.select({ spacesUnlockedAt: profiles.spacesUnlockedAt })
+		.from(profiles)
+		.where(eq(profiles.id, userId))
+		.limit(1);
+	if (profile?.spacesUnlockedAt) return { canCreate: true, upgradeTarget: null };
+
+	const target = owned.find((s) => !s.isPremium) ?? null;
+	return {
+		canCreate: false,
+		upgradeTarget: target ? { slug: target.slug, title: target.title } : null,
+	};
+}
+
+/** Create-page data: may this account open another board, and if not, which board to unlock. */
+export const getCreateEligibility = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const user = await getSessionUser();
+		if (!user) return { canCreate: false, upgradeTarget: null };
+		return createEligibility(user.id);
+	},
+);
 
 /**
  * Spaces created by the current host (identified by the signed host_token
@@ -127,6 +166,7 @@ export const listMySpaces = createServerFn({ method: "GET" }).handler(
 				title: signSpaces.title,
 				boardColor: signSpaces.boardColor,
 				status: signSpaces.status,
+				isPremium: signSpaces.isPremium,
 				updatedAt: signSpaces.updatedAt,
 				marks: count(marks.id),
 				contributors: countDistinct(marks.authorId),
@@ -161,6 +201,18 @@ export const getSpaceBySlug = createServerFn({ method: "GET" })
 		// host_token is a secret — never ship it to the client.
 		const { hostToken: _omit, ...publicSpace } = space;
 
+		// Quote the unlock price to a signed-in host of a still-locked board (the
+		// first unlock costs more — see lib/plan.ts). Null = no unlock to offer.
+		let unlockPriceKoboQuote: number | null = null;
+		if (isHost && !space.isPremium && user) {
+			const [profile] = await db
+				.select({ spacesUnlockedAt: profiles.spacesUnlockedAt })
+				.from(profiles)
+				.where(eq(profiles.id, user.id))
+				.limit(1);
+			unlockPriceKoboQuote = unlockPriceKobo(!!profile?.spacesUnlockedAt);
+		}
+
 		// Sealed capsule (non-host, reveal still in the future): withhold the
 		// board. Signing still works — the client shows a countdown, not marks.
 		if (!isHost && isSealed(space)) {
@@ -169,6 +221,7 @@ export const getSpaceBySlug = createServerFn({ method: "GET" })
 				marks: [],
 				isHost,
 				sealed: true as const,
+				unlockPriceKobo: null,
 			};
 		}
 
@@ -183,6 +236,7 @@ export const getSpaceBySlug = createServerFn({ method: "GET" })
 			marks: items,
 			isHost,
 			sealed: false as const,
+			unlockPriceKobo: unlockPriceKoboQuote,
 		};
 	});
 
@@ -211,10 +265,10 @@ export const lockSpace = createServerFn({ method: "POST" })
 
 /**
  * Host-only: permanently delete a space and everything on it. Marks cascade at
- * the DB level (marks.space_id ON DELETE CASCADE); we also drop the space's
- * payment rows first (in the same transaction) so the single-use payment
- * reference can't be recycled into a free space once its FK is nulled, and
- * best-effort purge the private voice/photo files. Irreversible.
+ * the DB level (marks.space_id ON DELETE CASCADE); private voice/photo files
+ * are purged best-effort. Payment rows stay (space_id nulls out) — they're the
+ * financial record, and a reference is spent by the row's existence, so a
+ * nulled FK can't be replayed into another unlock. Irreversible.
  */
 export const deleteSpace = createServerFn({ method: "POST" })
 	.inputValidator((input: { slug: string }) => {
@@ -239,13 +293,7 @@ export const deleteSpace = createServerFn({ method: "POST" })
 		// guard here too in case the bucket/service is unreachable.
 		await deleteSpaceMedia(space.id).catch(() => {});
 
-		await db.transaction(async (tx) => {
-			// Drop the payment(s) tied to this space first. If we let the space
-			// delete null their space_id (ON DELETE SET NULL), the reference would
-			// look unused again and could open another space for free.
-			await tx.delete(payments).where(eq(payments.spaceId, space.id));
-			await tx.delete(signSpaces).where(eq(signSpaces.id, space.id));
-		});
+		await db.delete(signSpaces).where(eq(signSpaces.id, space.id));
 
 		return { ok: true as const };
 	});

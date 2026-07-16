@@ -1,5 +1,10 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Gift, Loader2, Lock } from "lucide-react";
+import {
+	createFileRoute,
+	Link,
+	redirect,
+	useNavigate,
+} from "@tanstack/react-router";
+import { ArrowRight, Gift, Loader2, Lock, Sparkles } from "lucide-react";
 import { type SubmitEvent, useState } from "react";
 
 import {
@@ -20,22 +25,24 @@ import {
 	templateById,
 } from "#/lib/space-templates.ts";
 import { cn } from "#/lib/utils.ts";
-import { initSpacePayment } from "#/server/payments.ts";
 import { fetchSessionUser } from "#/server/session.ts";
-import { createSpace } from "#/server/spaces.ts";
+import { createSpace, getCreateEligibility } from "#/server/spaces.ts";
 
 export const Route = createFileRoute("/_app/create")({
-	// Opening a space is paid, so it requires a signed-in account.
+	// A board belongs to an account, so opening one requires signing in.
 	beforeLoad: async () => {
 		const user = await fetchSessionUser();
 		if (!user) {
 			throw redirect({ to: "/login", search: { next: "/create" } });
 		}
 	},
+	// One free board per account until the first unlock opens unlimited boards.
+	loader: () => getCreateEligibility(),
 	component: CreatePage,
 });
 
 function CreatePage() {
+	const { canCreate, upgradeTarget } = Route.useLoaderData();
 	const navigate = useNavigate();
 	const [templateId, setTemplateId] = useState(DEFAULT_TEMPLATE.id);
 	const [color, setColor] = useState(DEFAULT_TEMPLATE.boardColor);
@@ -78,8 +85,6 @@ function CreatePage() {
 			setError("Select the university you're signing out from");
 			return;
 		}
-		// Validate the optional gift up front (before charging) so a malformed
-		// account never blocks between payment and space creation.
 		let giftInput: GiftFormValue | null;
 		try {
 			giftInput = giftOpen ? normalizeGift(gift) : null;
@@ -90,54 +95,61 @@ function CreatePage() {
 		setSubmitting(true);
 
 		try {
-			// 1. Start the ₦1,000 transaction server-side (amount is fixed there).
-			const { accessCode, reference } = await initSpacePayment();
-
-			// 2. Open the Paystack popup. Imported lazily so SSR never touches it.
-			const { default: PaystackPop } = await import("@paystack/inline-js");
-			const popup = new PaystackPop();
-			popup.resumeTransaction(accessCode, {
-				// 3. Payment confirmed — createSpace re-verifies the reference, then inserts.
-				onSuccess: async () => {
-					try {
-						const { slug } = await createSpace({
-							data: {
-								title,
-								note,
-								boardColor: color,
-								university,
-								gift: giftInput ?? undefined,
-								paymentReference: reference,
-								revealAt: revealAt || undefined,
-							},
-						});
-						navigate({
-							to: "/s/$spaceId",
-							params: { spaceId: slug },
-							search: { welcome: true },
-						});
-					} catch (err) {
-						setError(
-							err instanceof Error
-								? err.message
-								: "Payment went through but the space couldn't be created — try again.",
-						);
-						setSubmitting(false);
-					}
-				},
-				onCancel: () => {
-					setError("Payment cancelled — your space wasn't created.");
-					setSubmitting(false);
-				},
-				onError: (err: { message?: string }) => {
-					setError(err?.message || "Payment failed. Please try again.");
-					setSubmitting(false);
+			const { slug } = await createSpace({
+				data: {
+					title,
+					note,
+					boardColor: color,
+					university,
+					gift: giftInput ?? undefined,
+					revealAt: revealAt || undefined,
 				},
 			});
+			navigate({
+				to: "/s/$spaceId",
+				params: { spaceId: slug },
+				search: { welcome: true },
+			});
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Could not start payment");
+			setError(
+				err instanceof Error ? err.message : "The space couldn't be created",
+			);
 			setSubmitting(false);
 		}
+	}
+
+	if (!canCreate) {
+		return (
+			<div className="page-wrap max-w-2xl py-14">
+				<p className="kicker">New sign-out space</p>
+				<h1 className="font-display mt-2 text-3xl font-extrabold text-ink sm:text-4xl">
+					Your free board is already open.
+				</h1>
+				<p className="mt-3 text-lg text-ink-soft">
+					Every account starts with one free board. Unlock any board of yours —
+					your first unlock (₦1,200) lifts its limits <em>and</em> lets you
+					open as many boards as you like (₦1,000 to unlock each new one).
+				</p>
+				<div className="mt-8 flex flex-wrap items-center gap-3">
+					{upgradeTarget ? (
+						<Button asChild size="lg" className="pop rounded-full">
+							<Link to="/s/$spaceId" params={{ spaceId: upgradeTarget.slug }}>
+								<Sparkles className="size-4" /> Unlock “{upgradeTarget.title}”
+							</Link>
+						</Button>
+					) : (
+						<Button asChild size="lg" className="pop rounded-full">
+							<Link to="/dashboard">
+								<Sparkles className="size-4" /> Go to your boards
+							</Link>
+						</Button>
+					)}
+					<Button asChild variant="outline" size="lg" className="rounded-full">
+						<Link to="/dashboard">My dashboard</Link>
+					</Button>
+				</div>
+			</div>
+		);
 	}
 
 	return (
@@ -147,7 +159,9 @@ function CreatePage() {
 				Name your board, then start signing.
 			</h1>
 			<p className="mt-3 text-lg text-ink-soft">
-				A one-time ₦1,000 opens your space. The people who sign it never pay.
+				Your first board is free and holds 5 signatures. Unlock it any time for
+				unlimited signing, exports and voice notes — the people who sign never
+				pay.
 			</p>
 
 			<form onSubmit={onSubmit} className="mt-10 flex flex-col gap-7">
@@ -312,18 +326,17 @@ function CreatePage() {
 					>
 						{submitting ? (
 							<>
-								<Loader2 className="size-4 animate-spin" /> Processing…
+								<Loader2 className="size-4 animate-spin" /> Opening…
 							</>
 						) : (
 							<>
-								Pay ₦1,000 &amp; open the canvas{" "}
-								<ArrowRight className="size-4" />
+								Open your free canvas <ArrowRight className="size-4" />
 							</>
 						)}
 					</Button>
 					<p className="inline-flex items-center gap-1.5 text-xs text-ink-faint">
-						<Lock className="size-3" /> Secure payment by Paystack. You'll only
-						be charged once the space opens.
+						<Sparkles className="size-3" /> Free to open — no card needed.
+						Unlock later for unlimited signatures, exports &amp; voice notes.
 					</p>
 				</div>
 			</form>

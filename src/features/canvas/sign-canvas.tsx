@@ -2,6 +2,7 @@ import Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import {
 	Hand,
+	Lock,
 	Mic,
 	Minus,
 	PenLine,
@@ -40,6 +41,7 @@ import {
 } from "#/features/canvas/types.ts";
 import { useRealtimeMarks } from "#/features/canvas/use-realtime-marks.ts";
 import { SealedBanner } from "#/features/reveal/sealed-banner.tsx";
+import { FREE_MARK_LIMIT } from "#/lib/plan.ts";
 import { cn } from "#/lib/utils.ts";
 import {
 	type AddMarkInput,
@@ -105,6 +107,7 @@ export type SignCanvasProps = {
 		slug: string;
 		status: string;
 		revealAt: string | null;
+		isPremium: boolean;
 	};
 	initialMarks: Mark[];
 	isHost: boolean;
@@ -165,6 +168,12 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		useRealtimeMarks(space.id, upsert, patch, remove, !sealed);
 		const locked = space.status === "locked";
 		const needsAuth = ready && !user;
+		// Free-tier boards cap out at FREE_MARK_LIMIT visible marks; the server
+		// enforces the same rule in addMark, this is just the friendly gate.
+		const boardFull = !space.isPremium && count >= FREE_MARK_LIMIT;
+		const boardFullMessage = isHost
+			? `Your free board is full (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — unlock it for unlimited signing`
+			: `This free board is full (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — ask the host to unlock it`;
 
 		const colorHex =
 			MARKER_COLORS.find((c) => c.id === colorId)?.value ?? "#2f6be6";
@@ -287,6 +296,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				setSignInOpen(true);
 				return;
 			}
+			if (boardFull) return; // the persistent full-board pill explains why
 			const p = worldPoint();
 			if (!p) return;
 			draftRef.current = {
@@ -344,6 +354,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				setSignInOpen(true);
 				return;
 			}
+			if (boardFull) return; // the persistent full-board pill explains why
 			const stage = stageRef.current;
 			const screen = stage?.getPointerPosition();
 			const world = worldPoint();
@@ -893,6 +904,13 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 					</div>
 				)}
 
+				{boardFull && !locked && !sealed && (
+					<div className="glass-pill absolute left-1/2 top-32 z-20 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-ink-soft">
+						<Lock className="size-3.5 shrink-0 text-ink-faint" />
+						{boardFullMessage}
+					</div>
+				)}
+
 				{space.revealAt &&
 					new Date(space.revealAt).getTime() > Date.now() &&
 					(sealed || isHost) && (
@@ -932,10 +950,22 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 					onRedo={redo}
 					canDelete={canDelete}
 					onDelete={deleteSelected}
+					voiceLocked={!space.isPremium}
 					onRequireAuth={() => setSignInOpen(true)}
 					onPick={(id) => {
-						if (id === "voice") toggleVoice();
-						else setTool(id);
+						if (id === "voice") {
+							// Voice notes are a premium feature; the server rejects them on
+							// free boards too, this just says so before the mic opens.
+							if (!space.isPremium) {
+								flashError(
+									isHost
+										? "Unlock this board to record voice notes"
+										: "Voice notes need this board unlocked by its host",
+								);
+								return;
+							}
+							toggleVoice();
+						} else setTool(id);
 					}}
 				/>
 			</div>
@@ -1041,6 +1071,7 @@ function Dock({
 	onRedo,
 	canDelete,
 	onDelete,
+	voiceLocked,
 	onRequireAuth,
 	onPick,
 }: {
@@ -1061,6 +1092,8 @@ function Dock({
 	onRedo: () => void;
 	canDelete: boolean;
 	onDelete: () => void;
+	/** Free-tier board: the voice tool shows a padlock (picking it still calls onPick). */
+	voiceLocked: boolean;
 	onRequireAuth: () => void;
 	onPick: (t: ToolId) => void;
 }) {
@@ -1195,6 +1228,7 @@ function Dock({
 					)}
 					{TOOLS.map((t) => {
 						const active = tool === t.id || (t.id === "voice" && recording);
+						const showLock = t.id === "voice" && voiceLocked;
 						return (
 							<button
 								key={t.id}
@@ -1202,7 +1236,7 @@ function Dock({
 								data-tour={`tool-${t.id}`}
 								onClick={() => pick(t.id)}
 								disabled={disabled && !FREE_TOOLS.includes(t.id)}
-								title={t.label}
+								title={showLock ? `${t.label} (unlock the board)` : t.label}
 								aria-label={t.label}
 								aria-pressed={active}
 								className={cn(
@@ -1218,6 +1252,9 @@ function Dock({
 								)}
 							>
 								<t.icon className="size-5" />
+								{showLock && (
+									<Lock className="absolute right-0.5 top-0.5 size-2.5 text-ink-faint" />
+								)}
 							</button>
 						);
 					})}

@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import {
 	CircleHelp,
+	Download,
 	Link2,
 	Loader2,
 	Lock,
@@ -23,6 +24,7 @@ import { ExportPicker } from "#/features/canvas/export-picker.tsx";
 import type { SignCanvasHandle } from "#/features/canvas/sign-canvas.tsx";
 import { GiftCard } from "#/features/gift/gift-card.tsx";
 import { ShareDialog } from "#/features/share/share-dialog.tsx";
+import { UnlockButton } from "#/features/upgrade/unlock-button.tsx";
 import {
 	buildSpaceTourSteps,
 	useSpaceTour,
@@ -73,10 +75,12 @@ export const Route = createFileRoute("/s/$spaceId")({
 });
 
 function SpacePage() {
-	const { space, marks, isHost, sealed } = Route.useLoaderData();
+	const { space, marks, isHost, sealed, unlockPriceKobo } =
+		Route.useLoaderData();
 	const router = useRouter();
 	const [shareOpen, setShareOpen] = useState(false);
 	const [locking, setLocking] = useState(false);
+	const [notice, setNotice] = useState<string | null>(null);
 	const [boardColorId, setBoardColorId] = useState(space.boardColor);
 	const canvasRef = useRef<SignCanvasHandle>(null);
 	const locked = space.status === "locked";
@@ -104,6 +108,11 @@ function SpacePage() {
 		}
 	}
 
+	function flashNotice(message: string) {
+		setNotice(message);
+		setTimeout(() => setNotice(null), 4000);
+	}
+
 	return (
 		<div className="relative h-dvh overflow-hidden bg-paper-2/40">
 			{/* Canvas region — fills the whole viewport; the header floats above it. */}
@@ -124,6 +133,7 @@ function SpacePage() {
 								slug: space.slug,
 								status: space.status,
 								revealAt: space.revealAt,
+								isPremium: space.isPremium,
 							}}
 							initialMarks={marks}
 							isHost={isHost}
@@ -209,15 +219,36 @@ function SpacePage() {
 							</span>
 						</Button>
 					)}
-					{isHost && (
-						<ExportPicker
-							onExport={(format) => {
-								const stage = canvasRef.current?.getStage();
-								if (!stage) return;
-								exportCanvas(stage, format, space.slug || "sign-me-out", {
-									backgroundColor: board.bg,
-								});
-							}}
+					{isHost &&
+						(space.isPremium ? (
+							<ExportPicker
+								onExport={(format) => {
+									const stage = canvasRef.current?.getStage();
+									if (!stage) return;
+									exportCanvas(stage, format, space.slug || "sign-me-out", {
+										backgroundColor: board.bg,
+									});
+								}}
+							/>
+						) : (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() =>
+									flashNotice("Unlock this board to download exports")
+								}
+							>
+								<Download className="size-4" />
+								<span className="hidden sm:inline">Export</span>
+								<Lock className="size-3 text-ink-faint" />
+							</Button>
+						))}
+					{isHost && !space.isPremium && (
+						<UnlockButton
+							slug={space.slug}
+							amountKobo={unlockPriceKobo}
+							onDone={() => router.invalidate()}
+							onError={flashNotice}
 						/>
 					)}
 					<Button asChild size="sm">
@@ -228,6 +259,12 @@ function SpacePage() {
 					</Button>
 				</div>
 			</header>
+
+			{notice && (
+				<div className="glass-pill absolute left-1/2 top-20 z-50 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium text-ink">
+					{notice}
+				</div>
+			)}
 
 			{shareOpen && (
 				<ShareDialog

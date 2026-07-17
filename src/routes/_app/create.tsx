@@ -159,8 +159,8 @@ function CreatePage() {
 				Name your board, then start signing.
 			</h1>
 			<p className="mt-3 text-lg text-ink-soft">
-				Your first board is free and holds 5 signatures from friends — your own
-				notes don't count. Unlock it any time for a flat ₦1,000: unlimited
+				Your first board is free and holds 5 signatures from friends, plus up to
+				10 notes of your own. Unlock it any time for a flat ₦1,000: unlimited
 				signing, exports and voice notes. The people who sign never pay.
 			</p>
 

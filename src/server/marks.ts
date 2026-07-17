@@ -58,28 +58,30 @@ export const addMark = createServerFn({ method: "POST" })
 		if (!space) throw new Error("Space not found");
 		if (space.status !== "open") throw new Error("This space is locked");
 
-		// Free-tier boards: no voice notes, and at most FREE_MARK_LIMIT visible
-		// guest marks — the owner's own marks neither count nor get capped.
+		// Free-tier boards: no voice notes, and capped visible marks — guests
+		// share FREE_MARK_LIMIT while the owner gets their own (higher) cap, so
+		// a host can't dodge the guest limit by handing their device around.
 		// Check-then-insert is racy under a simultaneous burst of signers (a
 		// couple of extras can slip in) — acceptable for a soft cap.
 		if (!space.isPremium) {
 			const isOwner = !!space.ownerId && user.id === space.ownerId;
-			const [{ guests }] = await db
-				.select({ guests: count() })
+			// The caller's bucket: the owner's own marks when the owner is
+			// placing, everyone else's (incl. legacy null authors) otherwise.
+			const bucket = isOwner
+				? eq(marks.authorId, user.id)
+				: space.ownerId
+					? or(isNull(marks.authorId), ne(marks.authorId, space.ownerId))
+					: undefined;
+			const [{ existing }] = await db
+				.select({ existing: count() })
 				.from(marks)
 				.where(
-					and(
-						eq(marks.spaceId, space.id),
-						eq(marks.status, "visible"),
-						space.ownerId
-							? or(isNull(marks.authorId), ne(marks.authorId, space.ownerId))
-							: undefined,
-					),
+					and(eq(marks.spaceId, space.id), eq(marks.status, "visible"), bucket),
 				);
 			assertMarkAllowed(data.kind, {
 				isPremium: space.isPremium,
 				isOwner,
-				guestCount: guests,
+				count: existing,
 			});
 		}
 

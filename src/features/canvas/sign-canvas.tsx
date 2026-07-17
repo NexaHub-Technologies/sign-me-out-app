@@ -41,7 +41,7 @@ import {
 } from "#/features/canvas/types.ts";
 import { useRealtimeMarks } from "#/features/canvas/use-realtime-marks.ts";
 import { SealedBanner } from "#/features/reveal/sealed-banner.tsx";
-import { FREE_MARK_LIMIT } from "#/lib/plan.ts";
+import { FREE_HOST_MARK_LIMIT, FREE_MARK_LIMIT } from "#/lib/plan.ts";
 import { cn } from "#/lib/utils.ts";
 import {
 	type AddMarkInput,
@@ -169,16 +169,28 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		useRealtimeMarks(space.id, upsert, patch, remove, !sealed);
 		const locked = space.status === "locked";
 		const needsAuth = ready && !user;
-		// Free-tier boards cap out at FREE_MARK_LIMIT visible *guest* marks — the
-		// host's own marks neither count nor get blocked. The server enforces the
-		// same rule in addMark, this is just the friendly gate.
+		// Free-tier caps: guests share FREE_MARK_LIMIT visible marks, and the
+		// owner has their own FREE_HOST_MARK_LIMIT — so a host can't dodge the
+		// guest cap by handing their signed-in device around. The server
+		// enforces the same rules in addMark; this is just the friendly gate.
+		const viewerIsOwner =
+			!!user && !!space.ownerId && user.id === space.ownerId;
 		const guestCount = marks.filter(
 			(m) => m.authorId === null || m.authorId !== space.ownerId,
 		).length;
-		const boardFull = !space.isPremium && guestCount >= FREE_MARK_LIMIT;
-		const boardFullMessage = isHost
-			? `Guests filled your free board (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — unlock it for unlimited signing`
-			: `This free board is full (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — ask the host to unlock it`;
+		const ownerCount = marks.length - guestCount;
+		const guestsFull = !space.isPremium && guestCount >= FREE_MARK_LIMIT;
+		const hostFull = !space.isPremium && ownerCount >= FREE_HOST_MARK_LIMIT;
+		// What stops *this viewer* from adding to the free board.
+		const freeCapReached = viewerIsOwner ? hostFull : guestsFull;
+		const capMessage =
+			viewerIsOwner && hostFull
+				? `You've placed your ${FREE_HOST_MARK_LIMIT} free marks — unlock this board for unlimited signing`
+				: guestsFull
+					? isHost
+						? `Guests filled your free board (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — unlock it for unlimited signing`
+						: `This free board is full (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — ask the host to unlock it`
+					: null;
 
 		const colorHex =
 			MARKER_COLORS.find((c) => c.id === colorId)?.value ?? "#2f6be6";
@@ -301,7 +313,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				setSignInOpen(true);
 				return;
 			}
-			if (boardFull && !isHost) return; // the full-board pill explains why
+			if (freeCapReached) return; // the free-cap pill explains why
 			const p = worldPoint();
 			if (!p) return;
 			draftRef.current = {
@@ -359,7 +371,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				setSignInOpen(true);
 				return;
 			}
-			if (boardFull && !isHost) return; // the full-board pill explains why
+			if (freeCapReached) return; // the free-cap pill explains why
 			const stage = stageRef.current;
 			const screen = stage?.getPointerPosition();
 			const world = worldPoint();
@@ -909,10 +921,10 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 					</div>
 				)}
 
-				{boardFull && !locked && !sealed && (
+				{capMessage && !locked && !sealed && (
 					<div className="glass-pill absolute left-1/2 top-32 z-20 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-ink-soft">
 						<Lock className="size-3.5 shrink-0 text-ink-faint" />
-						{boardFullMessage}
+						{capMessage}
 					</div>
 				)}
 

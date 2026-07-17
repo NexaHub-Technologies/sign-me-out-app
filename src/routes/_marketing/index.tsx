@@ -593,9 +593,9 @@ function PricingSection() {
 					</h2>
 					<p className="mt-4 text-lg leading-relaxed text-ink-soft">
 						Open a board, share the link, collect your first 5 signatures — no
-						card needed. One unlock of ₦1,200 lifts every limit on that board
-						and lets you open as many boards as you like (₦1,000 to unlock each
-						new one). No subscriptions, and the people who sign never pay.
+						card needed. Unlocking a board is a flat ₦1,000: every limit lifts,
+						and you can open as many boards as you like. No subscriptions, and
+						the people who sign never pay.
 					</p>
 
 					<ul className="mt-8 space-y-4">
@@ -641,7 +641,7 @@ function PricingSection() {
 										0
 									</span>
 									<span className="text-sm text-ink-soft">
-										your first board — 5 signatures
+										your first board — 5 signatures from friends
 									</span>
 								</div>
 							</div>
@@ -650,15 +650,8 @@ function PricingSection() {
 
 							<div className="flex items-center justify-between text-sm">
 								<span className="text-ink-soft">
-									Unlock a board — unlimited signing, exports &amp; voice notes
-								</span>
-								<span className="font-semibold text-marker-blue-deep">
-									₦1,200
-								</span>
-							</div>
-							<div className="flex items-center justify-between text-sm">
-								<span className="text-ink-soft">
-									Unlock each extra board after that
+									Unlock any board — unlimited signing, exports &amp; voice
+									notes
 								</span>
 								<span className="font-semibold text-marker-blue-deep">
 									₦1,000

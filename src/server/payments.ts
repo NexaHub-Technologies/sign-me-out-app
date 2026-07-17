@@ -7,10 +7,10 @@ import {
 } from "#/server/payments-core.ts";
 
 /**
- * Start the Paystack transaction that unlocks a board (₦1,200 first unlock,
- * ₦1,000 after — priced server-side). Client-importable: the handler (and its
- * server-only `db` imports via payments-core) is stripped from the browser
- * bundle and called over RPC. Keep this module server-fn-only.
+ * Start the Paystack transaction that unlocks a board (flat ₦1,000, priced
+ * server-side). Client-importable: the handler (and its server-only `db`
+ * imports via payments-core) is stripped from the browser bundle and called
+ * over RPC. Keep this module server-fn-only.
  */
 export const initSpaceUnlock = createServerFn({ method: "POST" })
 	.inputValidator((input: { slug: string }) => {
@@ -22,7 +22,7 @@ export const initSpaceUnlock = createServerFn({ method: "POST" })
 
 /**
  * Verify a completed unlock payment and apply it — the board goes premium and
- * a first-ever unlock also opens multi-board creation for the payer.
+ * any unlock also opens multi-board creation for the payer.
  */
 export const completeSpaceUnlock = createServerFn({ method: "POST" })
 	.inputValidator((input: { slug: string; reference: string }) => {

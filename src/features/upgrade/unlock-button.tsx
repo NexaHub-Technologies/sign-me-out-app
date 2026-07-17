@@ -7,9 +7,9 @@ import { completeSpaceUnlock, initSpaceUnlock } from "#/server/payments.ts";
 
 /**
  * The "unlock this board" CTA: starts the Paystack transaction server-side
- * (which fixes the price — ₦1,200 for the account's first unlock, ₦1,000
- * after), resumes it in the inline popup, then completes the unlock and hands
- * control back via `onDone` (callers refresh their loader data).
+ * (which fixes the flat ₦1,000 price), resumes it in the inline popup, then
+ * completes the unlock and hands control back via `onDone` (callers refresh
+ * their loader data).
  */
 export function UnlockButton({
 	slug,

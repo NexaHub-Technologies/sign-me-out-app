@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, isNull, ne, or } from "drizzle-orm";
 
 import { db } from "#/db/index.ts";
 import { marks, signSpaces } from "#/db/schema.ts";
@@ -50,6 +50,7 @@ export const addMark = createServerFn({ method: "POST" })
 				id: signSpaces.id,
 				status: signSpaces.status,
 				isPremium: signSpaces.isPremium,
+				ownerId: signSpaces.ownerId,
 			})
 			.from(signSpaces)
 			.where(eq(signSpaces.id, data.spaceId))
@@ -58,14 +59,28 @@ export const addMark = createServerFn({ method: "POST" })
 		if (space.status !== "open") throw new Error("This space is locked");
 
 		// Free-tier boards: no voice notes, and at most FREE_MARK_LIMIT visible
-		// marks. Check-then-insert is racy under a simultaneous burst of signers
-		// (a couple of extras can slip in) — acceptable for a soft cap.
+		// guest marks — the owner's own marks neither count nor get capped.
+		// Check-then-insert is racy under a simultaneous burst of signers (a
+		// couple of extras can slip in) — acceptable for a soft cap.
 		if (!space.isPremium) {
-			const [{ visible }] = await db
-				.select({ visible: count() })
+			const isOwner = !!space.ownerId && user.id === space.ownerId;
+			const [{ guests }] = await db
+				.select({ guests: count() })
 				.from(marks)
-				.where(and(eq(marks.spaceId, space.id), eq(marks.status, "visible")));
-			assertMarkAllowed(data.kind, space.isPremium, visible);
+				.where(
+					and(
+						eq(marks.spaceId, space.id),
+						eq(marks.status, "visible"),
+						space.ownerId
+							? or(isNull(marks.authorId), ne(marks.authorId, space.ownerId))
+							: undefined,
+					),
+				);
+			assertMarkAllowed(data.kind, {
+				isPremium: space.isPremium,
+				isOwner,
+				guestCount: guests,
+			});
 		}
 
 		const [mark] = await db

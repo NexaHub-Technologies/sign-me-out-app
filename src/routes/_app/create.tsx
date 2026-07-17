@@ -126,9 +126,9 @@ function CreatePage() {
 					Your free board is already open.
 				</h1>
 				<p className="mt-3 text-lg text-ink-soft">
-					Every account starts with one free board. Unlock any board of yours —
-					your first unlock (₦1,200) lifts its limits <em>and</em> lets you open
-					as many boards as you like (₦1,000 to unlock each new one).
+					Every account starts with one free board. Unlock any board of yours
+					for a flat ₦1,000 — it lifts that board's limits <em>and</em> lets you
+					open as many boards as you like.
 				</p>
 				<div className="mt-8 flex flex-wrap items-center gap-3">
 					{upgradeTarget ? (
@@ -159,9 +159,9 @@ function CreatePage() {
 				Name your board, then start signing.
 			</h1>
 			<p className="mt-3 text-lg text-ink-soft">
-				Your first board is free and holds 5 signatures. Unlock it any time for
-				unlimited signing, exports and voice notes — the people who sign never
-				pay.
+				Your first board is free and holds 5 signatures from friends — your own
+				notes don't count. Unlock it any time for a flat ₦1,000: unlimited
+				signing, exports and voice notes. The people who sign never pay.
 			</p>
 
 			<form onSubmit={onSubmit} className="mt-10 flex flex-col gap-7">
@@ -336,7 +336,8 @@ function CreatePage() {
 					</Button>
 					<p className="inline-flex items-center gap-1.5 text-xs text-ink-faint">
 						<Sparkles className="size-3" /> Free to open — no card needed.
-						Unlock later for unlimited signatures, exports &amp; voice notes.
+						Unlock later (₦1,000) for unlimited signatures, exports &amp; voice
+						notes.
 					</p>
 				</div>
 			</form>

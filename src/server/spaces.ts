@@ -1,12 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, count, countDistinct, desc, eq, or } from "drizzle-orm";
+import { and, asc, count, countDistinct, desc, eq, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 import { db } from "#/db/index.ts";
 import { marks, profiles, signSpaces } from "#/db/schema.ts";
 import { BOARD_COLOR_IDS } from "#/lib/board-colors.ts";
 import { type GiftInput, normalizeGift } from "#/lib/gift.ts";
-import { unlockPriceKobo } from "#/lib/plan.ts";
+import { UNLOCK_PRICE_KOBO } from "#/lib/plan.ts";
 import {
 	ensureHostToken,
 	getHostToken,
@@ -68,14 +68,14 @@ export const createSpace = createServerFn({ method: "POST" })
 		},
 	)
 	.handler(async ({ data }) => {
-		// Every account gets one free (limited) board. Opening more takes the
-		// first ₦1,200 unlock, which stamps profiles.spaces_unlocked_at.
+		// Every account gets one free (limited) board. Opening more takes an
+		// unlock (₦1,000), which stamps profiles.spaces_unlocked_at.
 		const user = await getSessionUser();
 		if (!user) throw new Error("Sign in to open a space");
 		const { canCreate } = await createEligibility(user.id);
 		if (!canCreate) {
 			throw new Error(
-				"Unlock one of your boards to open more — your first unlock (₦1,200) also opens unlimited boards",
+				"Unlock one of your boards (₦1,000) to open as many boards as you like",
 			);
 		}
 
@@ -102,8 +102,8 @@ export const createSpace = createServerFn({ method: "POST" })
 
 /**
  * Whether this account may open another board: yes while it holds none, and
- * always once its first unlock stamped the profile. When blocked, also pick
- * the newest still-locked board as the natural "unlock this one" target.
+ * always once any unlock stamped the profile. When blocked, also pick the
+ * newest still-locked board as the natural "unlock this one" target.
  */
 async function createEligibility(userId: string): Promise<{
 	canCreate: boolean;
@@ -170,6 +170,11 @@ export const listMySpaces = createServerFn({ method: "GET" }).handler(
 				isPremium: signSpaces.isPremium,
 				updatedAt: signSpaces.updatedAt,
 				marks: count(marks.id),
+				// Marks not authored by the owner — what the free cap counts (the
+				// guard against the joined no-marks row is why marks.id is checked).
+				guestMarks: count(
+					sql`case when ${marks.id} is not null and (${marks.authorId} is null or ${marks.authorId} is distinct from ${signSpaces.ownerId}) then 1 end`,
+				),
 				contributors: countDistinct(marks.authorId),
 			})
 			.from(signSpaces)
@@ -202,17 +207,10 @@ export const getSpaceBySlug = createServerFn({ method: "GET" })
 		// host_token is a secret — never ship it to the client.
 		const { hostToken: _omit, ...publicSpace } = space;
 
-		// Quote the unlock price to a signed-in host of a still-locked board (the
-		// first unlock costs more — see lib/plan.ts). Null = no unlock to offer.
-		let unlockPriceKoboQuote: number | null = null;
-		if (isHost && !space.isPremium && user) {
-			const [profile] = await db
-				.select({ spacesUnlockedAt: profiles.spacesUnlockedAt })
-				.from(profiles)
-				.where(eq(profiles.id, user.id))
-				.limit(1);
-			unlockPriceKoboQuote = unlockPriceKobo(!!profile?.spacesUnlockedAt);
-		}
+		// Quote the flat unlock price to the host of a still-locked board.
+		// Null = no unlock to offer (signer view, or already premium).
+		const unlockPriceKoboQuote =
+			isHost && !space.isPremium ? UNLOCK_PRICE_KOBO : null;
 
 		// Sealed capsule (non-host, reveal still in the future): withhold the
 		// board. Signing still works — the client shows a countdown, not marks.

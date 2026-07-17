@@ -108,6 +108,7 @@ export type SignCanvasProps = {
 		status: string;
 		revealAt: string | null;
 		isPremium: boolean;
+		ownerId: string | null;
 	};
 	initialMarks: Mark[];
 	isHost: boolean;
@@ -168,11 +169,15 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		useRealtimeMarks(space.id, upsert, patch, remove, !sealed);
 		const locked = space.status === "locked";
 		const needsAuth = ready && !user;
-		// Free-tier boards cap out at FREE_MARK_LIMIT visible marks; the server
-		// enforces the same rule in addMark, this is just the friendly gate.
-		const boardFull = !space.isPremium && count >= FREE_MARK_LIMIT;
+		// Free-tier boards cap out at FREE_MARK_LIMIT visible *guest* marks — the
+		// host's own marks neither count nor get blocked. The server enforces the
+		// same rule in addMark, this is just the friendly gate.
+		const guestCount = marks.filter(
+			(m) => m.authorId === null || m.authorId !== space.ownerId,
+		).length;
+		const boardFull = !space.isPremium && guestCount >= FREE_MARK_LIMIT;
 		const boardFullMessage = isHost
-			? `Your free board is full (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — unlock it for unlimited signing`
+			? `Guests filled your free board (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — unlock it for unlimited signing`
 			: `This free board is full (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — ask the host to unlock it`;
 
 		const colorHex =
@@ -296,7 +301,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				setSignInOpen(true);
 				return;
 			}
-			if (boardFull) return; // the persistent full-board pill explains why
+			if (boardFull && !isHost) return; // the full-board pill explains why
 			const p = worldPoint();
 			if (!p) return;
 			draftRef.current = {
@@ -354,7 +359,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 				setSignInOpen(true);
 				return;
 			}
-			if (boardFull) return; // the persistent full-board pill explains why
+			if (boardFull && !isHost) return; // the full-board pill explains why
 			const stage = stageRef.current;
 			const screen = stage?.getPointerPosition();
 			const world = worldPoint();

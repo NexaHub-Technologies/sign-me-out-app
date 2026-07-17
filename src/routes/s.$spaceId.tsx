@@ -134,6 +134,7 @@ function SpacePage() {
 								status: space.status,
 								revealAt: space.revealAt,
 								isPremium: space.isPremium,
+								ownerId: space.ownerId,
 							}}
 							initialMarks={marks}
 							isHost={isHost}

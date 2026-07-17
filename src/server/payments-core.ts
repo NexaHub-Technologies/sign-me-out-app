@@ -4,11 +4,7 @@ import { nanoid } from "nanoid";
 import { db } from "#/db/index.ts";
 import { merchOrders, payments, profiles, signSpaces } from "#/db/schema.ts";
 import { PRODUCTS } from "#/lib/order-options.ts";
-import {
-	FIRST_UNLOCK_PRICE_KOBO,
-	UNLOCK_PRICE_KOBO,
-	unlockPriceKobo,
-} from "#/lib/plan.ts";
+import { UNLOCK_PRICE_KOBO } from "#/lib/plan.ts";
 import { getSessionUser, isSpaceHost } from "#/server/auth.ts";
 
 /**
@@ -73,12 +69,12 @@ async function verifyPaystack(reference: string): Promise<VerifiedTxn> {
 }
 
 /**
- * Start a Paystack transaction to unlock a space (full features; the first
- * unlock also opens multi-board creation, hence its higher price). Host-only,
- * and the host must be signed in (we charge their account email). Returns the
- * access code the browser popup resumes, our reference, and the quoted amount.
- * No DB row is written yet — that happens only after the payment is verified
- * (see `recordSpaceUnlock`).
+ * Start a Paystack transaction to unlock a space (full features; any unlock
+ * also opens multi-board creation for the payer). Host-only, and the host
+ * must be signed in (we charge their account email). Returns the access code
+ * the browser popup resumes, our reference, and the flat unlock amount. No DB
+ * row is written yet — that happens only after the payment is verified (see
+ * `recordSpaceUnlock`).
  */
 export async function createSpaceUnlockPayment(slug: string): Promise<{
 	accessCode: string;
@@ -105,7 +101,7 @@ export async function createSpaceUnlockPayment(slug: string): Promise<{
 	}
 	if (space.isPremium) throw new Error("This board is already unlocked");
 
-	const amount = unlockPriceKobo(await hasAccountUnlock(user.id));
+	const amount = UNLOCK_PRICE_KOBO;
 	const reference = `smo_unlock_${nanoid(16)}`;
 
 	const res = await fetch(`${PAYSTACK}/transaction/initialize`, {
@@ -134,24 +130,13 @@ export async function createSpaceUnlockPayment(slug: string): Promise<{
 	return { accessCode: body.data.access_code, reference, amountKobo: amount };
 }
 
-/** Whether the user's first ₦1,200 unlock has already happened. */
-async function hasAccountUnlock(userId: string): Promise<boolean> {
-	const [profile] = await db
-		.select({ spacesUnlockedAt: profiles.spacesUnlockedAt })
-		.from(profiles)
-		.where(eq(profiles.id, userId))
-		.limit(1);
-	return !!profile?.spacesUnlockedAt;
-}
-
 /**
  * Verify an unlock payment with Paystack and apply it: record the payment
  * (deferred insert, `spaceId` set immediately — the row's existence spends the
  * reference), flip the space premium, and stamp the payer's account unlock if
  * this was their first. Throws unless the transaction succeeded, was started
- * by this user for this space, and paid an unlock price — a still-locked
- * account must have paid the first-unlock amount. Safe to call more than once
- * for the same space (idempotent retry of a flaky completion).
+ * by this user for this space, and paid the flat unlock price. Safe to call
+ * more than once for the same space (idempotent retry of a flaky completion).
  */
 export async function recordSpaceUnlock(
 	reference: string,
@@ -177,19 +162,7 @@ export async function recordSpaceUnlock(
 	if (txn.metadata.spaceId !== space.id) {
 		throw new Error("This payment was for a different board");
 	}
-	if (
-		txn.amount !== FIRST_UNLOCK_PRICE_KOBO &&
-		txn.amount !== UNLOCK_PRICE_KOBO
-	) {
-		throw new Error("Payment amount did not match");
-	}
-	// A quoted price can only drop between init and verify (an account unlock
-	// never reverts), so a still-locked account paying the lower price means a
-	// tampered charge, not a stale quote.
-	if (
-		txn.amount !== FIRST_UNLOCK_PRICE_KOBO &&
-		!(await hasAccountUnlock(user.id))
-	) {
+	if (txn.amount !== UNLOCK_PRICE_KOBO) {
 		throw new Error("Payment amount did not match");
 	}
 

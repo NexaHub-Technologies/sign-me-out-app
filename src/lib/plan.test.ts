@@ -1,55 +1,62 @@
 import { describe, expect, it } from "vitest";
 
 import {
-	FIRST_UNLOCK_PRICE_KOBO,
-	FREE_MARK_LIMIT,
-	UNLOCK_PRICE_KOBO,
 	assertMarkAllowed,
+	FREE_MARK_LIMIT,
 	formatNaira,
-	unlockPriceKobo,
+	UNLOCK_PRICE_KOBO,
 } from "#/lib/plan.ts";
-
-describe("unlockPriceKobo", () => {
-	it("quotes the higher first-unlock price to a still-locked account", () => {
-		expect(unlockPriceKobo(false)).toBe(FIRST_UNLOCK_PRICE_KOBO);
-	});
-
-	it("quotes the per-board price once the account has unlocked", () => {
-		expect(unlockPriceKobo(true)).toBe(UNLOCK_PRICE_KOBO);
-	});
-});
 
 describe("formatNaira", () => {
 	it("renders kobo as grouped naira", () => {
-		expect(formatNaira(FIRST_UNLOCK_PRICE_KOBO)).toBe("₦1,200");
 		expect(formatNaira(UNLOCK_PRICE_KOBO)).toBe("₦1,000");
+		expect(formatNaira(50_000)).toBe("₦500");
 	});
 });
 
 describe("assertMarkAllowed", () => {
+	const free = { isPremium: false, isOwner: false, guestCount: 0 };
+
 	it("lets anything onto an unlocked board, even past the free cap", () => {
 		expect(() =>
-			assertMarkAllowed("voice", true, FREE_MARK_LIMIT + 20),
+			assertMarkAllowed("voice", {
+				isPremium: true,
+				isOwner: false,
+				guestCount: FREE_MARK_LIMIT + 20,
+			}),
 		).not.toThrow();
 	});
 
-	it("blocks voice notes on a free board regardless of how empty it is", () => {
-		expect(() => assertMarkAllowed("voice", false, 0)).toThrow(/unlocked/i);
+	it("blocks voice notes on a free board for everyone, including the owner", () => {
+		expect(() => assertMarkAllowed("voice", free)).toThrow(/unlocked/i);
+		expect(() =>
+			assertMarkAllowed("voice", { ...free, isOwner: true }),
+		).toThrow(/unlocked/i);
 	});
 
-	it("admits strokes and text while a free board has room", () => {
+	it("admits strokes and text while a free board has guest room", () => {
 		expect(() =>
-			assertMarkAllowed("stroke", false, FREE_MARK_LIMIT - 1),
+			assertMarkAllowed("stroke", { ...free, guestCount: FREE_MARK_LIMIT - 1 }),
 		).not.toThrow();
-		expect(() => assertMarkAllowed("text", false, 0)).not.toThrow();
+		expect(() => assertMarkAllowed("text", free)).not.toThrow();
 	});
 
-	it("rejects the mark that would exceed the free cap", () => {
-		expect(() => assertMarkAllowed("stroke", false, FREE_MARK_LIMIT)).toThrow(
-			/full/i,
-		);
+	it("rejects the guest mark that would exceed the free cap", () => {
 		expect(() =>
-			assertMarkAllowed("photo", false, FREE_MARK_LIMIT + 3),
+			assertMarkAllowed("stroke", { ...free, guestCount: FREE_MARK_LIMIT }),
 		).toThrow(/full/i);
+		expect(() =>
+			assertMarkAllowed("photo", { ...free, guestCount: FREE_MARK_LIMIT + 3 }),
+		).toThrow(/full/i);
+	});
+
+	it("never caps the owner's own marks", () => {
+		expect(() =>
+			assertMarkAllowed("stroke", {
+				...free,
+				isOwner: true,
+				guestCount: FREE_MARK_LIMIT + 10,
+			}),
+		).not.toThrow();
 	});
 });

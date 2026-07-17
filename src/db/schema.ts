@@ -121,10 +121,10 @@ export const marks = pgTable(
 ).enableRLS();
 
 /**
- * One row per space-unlock payment via Paystack (₦1,200 first unlock, ₦1,000
- * after — see lib/plan.ts). Inserted only after Paystack verifies the charge,
- * with `spaceId` set at that moment — the row's existence means the reference
- * is consumed. Written only server-side via the Drizzle service connection.
+ * One row per space-unlock payment via Paystack (flat ₦1,000 — see
+ * lib/plan.ts). Inserted only after Paystack verifies the charge, with
+ * `spaceId` set at that moment — the row's existence means the reference is
+ * consumed. Written only server-side via the Drizzle service connection.
  */
 export const payments = pgTable(
 	"payments",
@@ -132,7 +132,7 @@ export const payments = pgTable(
 		id: uuid().defaultRandom().primaryKey().notNull(),
 		reference: text().notNull(), // Paystack reference we generate (smo_…)
 		email: text().notNull(),
-		amount: integer().notNull(), // kobo; 120000 (first unlock) or 100000
+		amount: integer().notNull(), // kobo; expected 100000 (₦1,000)
 		status: text().default("pending").notNull(), // 'pending' | 'success' | 'failed'
 		ownerId: uuid("owner_id"),
 		// The space this payment unlocked. Nulled if that space is later deleted,
@@ -217,8 +217,8 @@ export const profiles = pgTable("profiles", {
 	id: uuid().primaryKey().notNull(),
 	fullName: text("full_name"),
 	avatarUrl: text("avatar_url"),
-	// Stamped by the user's first ₦1,200 space unlock. Null = they can only
-	// hold their one free board; set = they may open any number of boards.
+	// Stamped by the user's first space unlock. Null = they can only hold
+	// their one free board; set = they may open any number of boards.
 	spacesUnlockedAt: timestamp("spaces_unlocked_at", {
 		withTimezone: true,
 		mode: "string",

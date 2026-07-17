@@ -488,7 +488,7 @@ const steps = [
 	{
 		n: "01",
 		title: "Open your space",
-		body: "Name your sign-out space, pay the charge, and you have a sign-out canvas in seconds.",
+		body: "Name your sign-out space and you have a free sign-out canvas in seconds — no card needed.",
 		color: "var(--marker-green-deep)",
 	},
 	{
@@ -581,26 +581,28 @@ function PricingSection() {
 		<section className="page-wrap py-20">
 			<div className="grid items-center gap-12 lg:grid-cols-[1fr_0.9fr]">
 				<div className="rise-in">
-					<p className="kicker">One price, everything included</p>
+					<p className="kicker">Start free, unlock when it fills up</p>
 					<h2 className="font-display mt-3 text-3xl font-bold text-ink sm:text-[2.6rem]">
-						All at the cost of{" "}
+						Your first board is{" "}
 						<span
 							className="hl"
 							style={{ "--hl": "var(--marker-amber)" } as CSSProperties}
 						>
-							₦1,000
+							free
 						</span>
 					</h2>
 					<p className="mt-4 text-lg leading-relaxed text-ink-soft">
-						That's it. One flat fee to open your canvas — no subscriptions, no
-						hidden charges, no per-signature billing. Your coursemates sign at
-						no added cost.
+						Open a board, share the link, collect your first 5 signatures — no
+						card needed. One unlock of ₦1,200 lifts every limit on that board
+						and lets you open as many boards as you like (₦1,000 to unlock each
+						new one). No subscriptions, and the people who sign never pay.
 					</p>
 
 					<ul className="mt-8 space-y-4">
 						{[
 							"Unlimited signatures, doodles, well-wishes & voice notes",
 							"Download a high-res PDF of your filled board",
+							"Open extra boards for every occasion",
 							"Your space stays live — share the link anytime",
 						].map((item) => (
 							<li key={item} className="flex items-start gap-3">
@@ -614,7 +616,7 @@ function PricingSection() {
 
 					<Button asChild size="lg" className="pop mt-8 rounded-full">
 						<Link to="/signup">
-							Create your space for ₦1,000 <ArrowRight className="size-4" />
+							Start your free board <ArrowRight className="size-4" />
 						</Link>
 					</Button>
 				</div>
@@ -636,10 +638,10 @@ function PricingSection() {
 								</span>
 								<div>
 									<span className="font-display block text-4xl font-extrabold text-ink">
-										1,000
+										0
 									</span>
 									<span className="text-sm text-ink-soft">
-										one-time payment
+										your first board — 5 signatures
 									</span>
 								</div>
 							</div>
@@ -647,24 +649,38 @@ function PricingSection() {
 							<div className="h-px bg-line" />
 
 							<div className="flex items-center justify-between text-sm">
-								<span className="text-ink-soft">Per-signature fees</span>
-								<span className="font-semibold text-marker-blue-deep">₦0</span>
+								<span className="text-ink-soft">
+									Unlock a board — unlimited signing, exports &amp; voice notes
+								</span>
+								<span className="font-semibold text-marker-blue-deep">
+									₦1,200
+								</span>
+							</div>
+							<div className="flex items-center justify-between text-sm">
+								<span className="text-ink-soft">
+									Unlock each extra board after that
+								</span>
+								<span className="font-semibold text-marker-blue-deep">
+									₦1,000
+								</span>
 							</div>
 							<div className="flex items-center justify-between text-sm">
 								<span className="text-ink-soft">Monthly subscription</span>
 								<span className="font-semibold text-marker-blue-deep">₦0</span>
 							</div>
 							<div className="flex items-center justify-between text-sm">
-								<span className="text-ink-soft">Hidden charges</span>
+								<span className="text-ink-soft">Per-signature fees</span>
 								<span className="font-semibold text-marker-blue-deep">₦0</span>
 							</div>
 
 							<div className="h-px bg-line" />
 
 							<div className="flex items-center justify-between">
-								<span className="font-display font-bold text-ink">Total</span>
+								<span className="font-display font-bold text-ink">
+									To get started
+								</span>
 								<span className="font-display text-2xl font-extrabold text-marker-blue-deep">
-									₦1,000
+									₦0
 								</span>
 							</div>
 						</div>

@@ -24,12 +24,12 @@ import { ExportPicker } from "#/features/canvas/export-picker.tsx";
 import type { SignCanvasHandle } from "#/features/canvas/sign-canvas.tsx";
 import { GiftCard } from "#/features/gift/gift-card.tsx";
 import { ShareDialog } from "#/features/share/share-dialog.tsx";
-import { UnlockButton } from "#/features/upgrade/unlock-button.tsx";
 import {
 	buildSpaceTourSteps,
 	useSpaceTour,
 } from "#/features/tour/space-tour.ts";
 import { SpotlightTour } from "#/features/tour/spotlight-tour.tsx";
+import { UnlockButton } from "#/features/upgrade/unlock-button.tsx";
 import { BOARD_COLORS, boardColorById } from "#/lib/board-colors.ts";
 import { hasGift } from "#/lib/gift.ts";
 import { pageMeta } from "#/lib/seo.ts";

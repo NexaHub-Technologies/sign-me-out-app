@@ -70,9 +70,7 @@ export function UnlockButton({
 			) : (
 				<Sparkles className="size-4" />
 			)}
-			<span>
-				Unlock{amountKobo ? ` · ${formatNaira(amountKobo)}` : ""}
-			</span>
+			<span>Unlock{amountKobo ? ` · ${formatNaira(amountKobo)}` : ""}</span>
 		</Button>
 	);
 }

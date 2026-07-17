@@ -18,6 +18,7 @@ import { Badge } from "#/components/ui/badge.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { ShareDialog } from "#/features/share/share-dialog.tsx";
 import { boardColorById } from "#/lib/board-colors.ts";
+import { FREE_MARK_LIMIT } from "#/lib/plan.ts";
 import { cn } from "#/lib/utils.ts";
 import { deleteSpace, listMySpaces } from "#/server/spaces.ts";
 
@@ -227,6 +228,18 @@ function SpaceCard({
 							<Users className="size-3.5 text-marker-blue" />
 							{space.contributors}
 						</span>
+						{space.isPremium ? (
+							<span className="inline-flex items-center gap-1.5 rounded-full bg-paper/85 px-2.5 py-1 text-xs font-semibold text-marker-blue-deep shadow-sm backdrop-blur">
+								<Sparkles className="size-3.5" />
+								Unlocked
+							</span>
+						) : (
+							<span className="inline-flex items-center gap-1.5 rounded-full bg-paper/85 px-2.5 py-1 text-xs font-semibold text-ink-soft shadow-sm backdrop-blur">
+								<Lock className="size-3.5" />
+								Free · {Math.min(space.marks, FREE_MARK_LIMIT)}/
+								{FREE_MARK_LIMIT}
+							</span>
+						)}
 					</div>
 				</div>
 

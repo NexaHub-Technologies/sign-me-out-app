@@ -125,7 +125,8 @@ async function createEligibility(userId: string): Promise<{
 		.from(profiles)
 		.where(eq(profiles.id, userId))
 		.limit(1);
-	if (profile?.spacesUnlockedAt) return { canCreate: true, upgradeTarget: null };
+	if (profile?.spacesUnlockedAt)
+		return { canCreate: true, upgradeTarget: null };
 
 	const target = owned.find((s) => !s.isPremium) ?? null;
 	return {

@@ -127,8 +127,8 @@ function CreatePage() {
 				</h1>
 				<p className="mt-3 text-lg text-ink-soft">
 					Every account starts with one free board. Unlock any board of yours —
-					your first unlock (₦1,200) lifts its limits <em>and</em> lets you
-					open as many boards as you like (₦1,000 to unlock each new one).
+					your first unlock (₦1,200) lifts its limits <em>and</em> lets you open
+					as many boards as you like (₦1,000 to unlock each new one).
 				</p>
 				<div className="mt-8 flex flex-wrap items-center gap-3">
 					{upgradeTarget ? (

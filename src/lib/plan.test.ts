@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	assertMarkAllowed,
+	FREE_GUEST_MARK_LIMIT,
 	FREE_HOST_MARK_LIMIT,
 	FREE_MARK_LIMIT,
 	formatNaira,
@@ -18,40 +19,60 @@ describe("formatNaira", () => {
 describe("assertMarkAllowed", () => {
 	const free = { isPremium: false, isOwner: false, count: 0 };
 
-	it("lets anything onto an unlocked board, even past the free caps", () => {
+	it("lets anything onto an unlocked board, even past every free cap", () => {
 		expect(() =>
 			assertMarkAllowed("voice", {
 				isPremium: true,
 				isOwner: false,
 				count: FREE_HOST_MARK_LIMIT + 20,
+				guestTotal: FREE_MARK_LIMIT + 20,
 			}),
 		).not.toThrow();
 	});
 
 	it("blocks voice notes on a free board for everyone, including the owner", () => {
-		expect(() => assertMarkAllowed("voice", free)).toThrow(/unlocked/i);
+		expect(() =>
+			assertMarkAllowed("voice", { ...free, guestTotal: 0 }),
+		).toThrow(/unlocked/i);
 		expect(() =>
 			assertMarkAllowed("voice", { ...free, isOwner: true }),
 		).toThrow(/unlocked/i);
 	});
 
-	it("admits strokes and text while a free board has guest room", () => {
+	it("admits a guest's first mark while the board pool has room", () => {
 		expect(() =>
-			assertMarkAllowed("stroke", { ...free, count: FREE_MARK_LIMIT - 1 }),
+			assertMarkAllowed("stroke", {
+				...free,
+				count: 0,
+				guestTotal: FREE_MARK_LIMIT - 1,
+			}),
 		).not.toThrow();
-		expect(() => assertMarkAllowed("text", free)).not.toThrow();
+		expect(() =>
+			assertMarkAllowed("text", { ...free, count: 0, guestTotal: 0 }),
+		).not.toThrow();
 	});
 
-	it("rejects the guest mark that would exceed the guest cap", () => {
+	it("blocks a guest's second mark even with room left in the pool", () => {
 		expect(() =>
-			assertMarkAllowed("stroke", { ...free, count: FREE_MARK_LIMIT }),
-		).toThrow(/full/i);
+			assertMarkAllowed("stroke", {
+				...free,
+				count: FREE_GUEST_MARK_LIMIT,
+				guestTotal: 1,
+			}),
+		).toThrow(/already left your signature/i);
+	});
+
+	it("rejects a fresh guest once the shared pool is full", () => {
 		expect(() =>
-			assertMarkAllowed("photo", { ...free, count: FREE_MARK_LIMIT + 3 }),
+			assertMarkAllowed("stroke", {
+				...free,
+				count: 0,
+				guestTotal: FREE_MARK_LIMIT,
+			}),
 		).toThrow(/full/i);
 	});
 
-	it("gives the owner their own higher cap, past the guest limit", () => {
+	it("gives the owner their own cap, independent of the guest pool", () => {
 		expect(() =>
 			assertMarkAllowed("stroke", {
 				...free,
@@ -68,6 +89,6 @@ describe("assertMarkAllowed", () => {
 				isOwner: true,
 				count: FREE_HOST_MARK_LIMIT,
 			}),
-		).toThrow(/10 free marks/i);
+		).toThrow(/free marks/i);
 	});
 });

@@ -10,8 +10,8 @@ as many boards as you like.**
 
 | | Free board | Unlocked board (₦1,000, one-time) |
 |---|---|---|
-| Guest marks (signatures, notes, photos) | 5 total | Unlimited |
-| Host's own marks | 10 total | Unlimited |
+| Guest marks (signatures, notes, photos) | 5 total, 1 per guest | Unlimited |
+| Host's own marks | 2 total | Unlimited |
 | Voice notes | — | ✓ |
 | Exports (PNG/JPG/SVG/PDF) | — | ✓ |
 | Open additional boards | — (first board only) | ✓ (account-wide, permanent) |
@@ -42,10 +42,14 @@ demo build itself, then asks for money at the moment of maximum motivation.
   host is most invested: friends are actively signing, the event is imminent,
   and the upgrade is urgent rather than speculative. Free tiers convert best
   when the limit is hit *during* peak engagement, not before it.
+- **Each guest gets exactly one mark.** A free board reads as real signatures
+  — one per person who received the link — rather than one friend filling
+  the pool alone. Enforced per author, not just in aggregate.
 - **The host's own marks don't count toward the guest cap** — a welcome note
-  and a doodle shouldn't eat the taste guests get. But the host has a
-  separate 10-mark cap, so passing a signed-in device around can't dodge the
-  guest limit (worst case, a free board holds 15 marks).
+  shouldn't eat the taste guests get. But the host has their own small
+  2-mark cap, so passing a signed-in device around to farm extra "guest"
+  signatures can't dodge the real guest limit (worst case, a free board
+  holds 7 marks: 5 guests × 1 each, plus 2 from the host).
 - **Voice notes and exports are unlock-only.** Exports especially: the export
   is the keepsake, wanted at the end — a second natural upgrade moment for
   boards that never hit the mark cap.

@@ -58,30 +58,52 @@ export const addMark = createServerFn({ method: "POST" })
 		if (!space) throw new Error("Space not found");
 		if (space.status !== "open") throw new Error("This space is locked");
 
-		// Free-tier boards: no voice notes, and capped visible marks — guests
-		// share FREE_MARK_LIMIT while the owner gets their own (higher) cap, so
-		// a host can't dodge the guest limit by handing their device around.
+		// Free-tier boards: no voice notes, one mark per guest (a real
+		// signature, not a spam vector), a shared FREE_MARK_LIMIT pool across
+		// all guests, and the owner's own separate FREE_HOST_MARK_LIMIT — so a
+		// host can't dodge the guest limits by handing their device around.
 		// Check-then-insert is racy under a simultaneous burst of signers (a
 		// couple of extras can slip in) — acceptable for a soft cap.
 		if (!space.isPremium) {
 			const isOwner = !!space.ownerId && user.id === space.ownerId;
-			// The caller's bucket: the owner's own marks when the owner is
-			// placing, everyone else's (incl. legacy null authors) otherwise.
-			const bucket = isOwner
-				? eq(marks.authorId, user.id)
-				: space.ownerId
-					? or(isNull(marks.authorId), ne(marks.authorId, space.ownerId))
-					: undefined;
-			const [{ existing }] = await db
-				.select({ existing: count() })
+			// This caller's own visible marks on the board (owner's own, or
+			// this specific guest's own).
+			const [{ own }] = await db
+				.select({ own: count() })
 				.from(marks)
 				.where(
-					and(eq(marks.spaceId, space.id), eq(marks.status, "visible"), bucket),
+					and(
+						eq(marks.spaceId, space.id),
+						eq(marks.status, "visible"),
+						eq(marks.authorId, user.id),
+					),
 				);
+
+			let guestTotal: number | undefined;
+			if (!isOwner) {
+				// The board-wide guest pool (everyone but the owner, incl.
+				// legacy null authors) — capped separately at FREE_MARK_LIMIT.
+				const guestBucket = space.ownerId
+					? or(isNull(marks.authorId), ne(marks.authorId, space.ownerId))
+					: undefined;
+				const [{ guests }] = await db
+					.select({ guests: count() })
+					.from(marks)
+					.where(
+						and(
+							eq(marks.spaceId, space.id),
+							eq(marks.status, "visible"),
+							guestBucket,
+						),
+					);
+				guestTotal = guests;
+			}
+
 			assertMarkAllowed(data.kind, {
 				isPremium: space.isPremium,
 				isOwner,
-				count: existing,
+				count: own,
+				guestTotal,
 			});
 		}
 

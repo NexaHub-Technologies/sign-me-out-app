@@ -1,6 +1,7 @@
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, useProgress } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Loader2 } from "lucide-react";
+import { Suspense } from "react";
 
 import { BoardTextureCapture } from "#/features/mockup-3d/board-texture-capture.tsx";
 import { MockupScene } from "#/features/mockup-3d/mockup-scene.tsx";
@@ -26,6 +27,10 @@ export function MockupPreview({
 }) {
 	const { marks, dataUrl, backgroundColor, loading, error, onCapture } =
 		useBoardTexture(boardSlug);
+	// Tracks THREE.DefaultLoadingManager — true while the glb/textures for the
+	// active product are still being fetched, independent of the board-texture
+	// capture above. Combined below so the spinner covers both loading phases.
+	const { active: modelLoading } = useProgress();
 
 	if (!hasMockup(productId) || !boardSlug) return null;
 
@@ -39,14 +44,21 @@ export function MockupPreview({
 				/>
 			)}
 			<Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
-				<MockupScene
-					productId={productId as MockupProductId}
-					imageUrl={dataUrl}
-					color={color}
-				/>
+				{/* <Canvas> runs its own React reconciler — a Suspense boundary
+				    outside it (e.g. around the lazy-loaded MockupPreview import in
+				    customize.tsx) does NOT catch a useGLTF() suspension from inside.
+				    Without this, the model's own load never resolves visually and
+				    the canvas just sits blank forever. */}
+				<Suspense fallback={null}>
+					<MockupScene
+						productId={productId as MockupProductId}
+						imageUrl={dataUrl}
+						color={color}
+					/>
+				</Suspense>
 				<OrbitControls enableZoom={false} />
 			</Canvas>
-			{(loading || !dataUrl) && !error && (
+			{(loading || !dataUrl || modelLoading) && !error && (
 				<div className="pointer-events-none absolute inset-0 grid place-items-center bg-paper-2/60">
 					<Loader2 className="size-6 animate-spin text-ink-faint" />
 				</div>

@@ -5,20 +5,22 @@
  * Every account may hold one free board; all boards start free-tier (capped
  * marks, no exports or voice notes). A flat ₦1,000 unlock lifts a board's
  * limits, and any unlock also lets the account open as many boards as it
- * likes. The host's own marks don't count toward the guest cap — their
- * welcome note shouldn't eat the taste guests get — but they have their own
- * (lower) cap, so a host can't dodge the guest limit by passing their
- * signed-in device around. Each guest gets exactly one mark, so the board
- * reads as real signatures rather than one friend spamming doodles.
+ * likes. A free board holds at most FREE_MARK_LIMIT marks *in total* — host
+ * and guests share that one pool. Within it, the host is capped at
+ * FREE_HOST_MARK_LIMIT of their own so a welcome note or two doesn't eat the
+ * whole pool, and each guest gets exactly FREE_GUEST_MARK_LIMIT (one
+ * signature) so the board reads as real signatures rather than one friend
+ * spamming doodles or a host farming extra "guest" marks from their own
+ * device.
  */
 
-/** Visible guest marks (of any kind) a free-tier board can hold in total. */
+/** Total visible marks (host + all guests combined) a free-tier board can hold. */
 export const FREE_MARK_LIMIT = 5;
 
-/** Visible marks any single guest may place on a free-tier board — one signature each. */
+/** Visible marks any single guest may place, within the shared FREE_MARK_LIMIT pool. */
 export const FREE_GUEST_MARK_LIMIT = 1;
 
-/** Visible marks the host may place on their own free-tier board. */
+/** Visible marks the host may place, within the shared FREE_MARK_LIMIT pool. */
 export const FREE_HOST_MARK_LIMIT = 2;
 
 /** Flat per-board unlock price, in kobo (₦1,000). */
@@ -32,10 +34,11 @@ export function formatNaira(kobo: number): string {
 /**
  * Free-tier rules for placing a mark. Throws with the user-facing message when
  * the mark isn't allowed; premium boards always pass. `count` is how many
- * visible marks the caller's bucket already holds: the owner's own marks when
- * the owner is placing (capped at FREE_HOST_MARK_LIMIT), or this specific
- * guest's own marks otherwise (capped at FREE_GUEST_MARK_LIMIT, and gated
- * again by the board's shared FREE_MARK_LIMIT). Voice is gated for everyone.
+ * visible marks the caller has already placed (owner's own, capped at
+ * FREE_HOST_MARK_LIMIT, or this specific guest's own, capped at
+ * FREE_GUEST_MARK_LIMIT). `boardTotal` is every visible mark on the board
+ * from anyone — the shared FREE_MARK_LIMIT ceiling nobody can cross, host
+ * included. Voice is gated for everyone.
  */
 export function assertMarkAllowed(
 	kind: string,
@@ -44,8 +47,8 @@ export function assertMarkAllowed(
 		isOwner: boolean;
 		/** Visible marks already placed by this caller (owner or this guest). */
 		count: number;
-		/** Visible guest marks already on the board, from anyone. Owner-only calls ignore this. */
-		guestTotal?: number;
+		/** Every visible mark on the board, from anyone (host + guests). */
+		boardTotal: number;
 	},
 ): void {
 	if (opts.isPremium) return;
@@ -58,14 +61,12 @@ export function assertMarkAllowed(
 				`You've placed your ${FREE_HOST_MARK_LIMIT} free marks — unlock this board for unlimited signing`,
 			);
 		}
-		return;
-	}
-	if (opts.count >= FREE_GUEST_MARK_LIMIT) {
+	} else if (opts.count >= FREE_GUEST_MARK_LIMIT) {
 		throw new Error(
 			"You've already left your signature on this free board — ask the host to unlock it for unlimited signing",
 		);
 	}
-	if ((opts.guestTotal ?? opts.count) >= FREE_MARK_LIMIT) {
+	if (opts.boardTotal >= FREE_MARK_LIMIT) {
 		throw new Error(
 			`This free board is full (${FREE_MARK_LIMIT} signatures) — the host can unlock unlimited signing`,
 		);

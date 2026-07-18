@@ -10,8 +10,9 @@ as many boards as you like.**
 
 | | Free board | Unlocked board (₦1,000, one-time) |
 |---|---|---|
-| Guest marks (signatures, notes, photos) | 5 total, 1 per guest | Unlimited |
-| Host's own marks | 2 total | Unlimited |
+| Total marks (host + guests combined) | 5 | Unlimited |
+| Any single guest's marks | 1 | Unlimited |
+| Host's own marks | 2 (within the shared 5) | Unlimited |
 | Voice notes | — | ✓ |
 | Exports (PNG/JPG/SVG/PDF) | — | ✓ |
 | Open additional boards | — (first board only) | ✓ (account-wide, permanent) |
@@ -38,18 +39,18 @@ demo build itself, then asks for money at the moment of maximum motivation.
 
 ## Why the paywall sits where it does
 
-- **The 5-guest cap is the conversion trigger.** It trips exactly when the
+- **The 5-mark cap is the conversion trigger.** It trips exactly when the
   host is most invested: friends are actively signing, the event is imminent,
   and the upgrade is urgent rather than speculative. Free tiers convert best
   when the limit is hit *during* peak engagement, not before it.
-- **Each guest gets exactly one mark.** A free board reads as real signatures
-  — one per person who received the link — rather than one friend filling
-  the pool alone. Enforced per author, not just in aggregate.
-- **The host's own marks don't count toward the guest cap** — a welcome note
-  shouldn't eat the taste guests get. But the host has their own small
-  2-mark cap, so passing a signed-in device around to farm extra "guest"
-  signatures can't dodge the real guest limit (worst case, a free board
-  holds 7 marks: 5 guests × 1 each, plus 2 from the host).
+- **It's one shared pool, not two.** A free board holds at most 5 marks
+  *total* — host and guests draw from the same budget. Within that pool,
+  each guest gets exactly one mark (a real signature, not a spam vector) and
+  the host is capped at 2 of their own, so a host can't dodge the shared
+  limit by handing their signed-in device around. (An earlier version of
+  this logic treated the host's cap as *additive* on top of the guest pool,
+  letting a free board reach 7 marks instead of 5 — fixed by checking every
+  placement against the combined total, not just the caller's own bucket.)
 - **Voice notes and exports are unlock-only.** Exports especially: the export
   is the keepsake, wanted at the end — a second natural upgrade moment for
   boards that never hit the mark cap.

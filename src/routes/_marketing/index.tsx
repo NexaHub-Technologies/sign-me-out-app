@@ -641,7 +641,7 @@ function PricingSection() {
 										0
 									</span>
 									<span className="text-sm text-ink-soft">
-										your first board — 5 signatures from friends
+										your first board — 5 signatures total
 									</span>
 								</div>
 							</div>

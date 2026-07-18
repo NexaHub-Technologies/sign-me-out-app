@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, count, countDistinct, desc, eq, or, sql } from "drizzle-orm";
+import { and, asc, count, countDistinct, desc, eq, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 import { db } from "#/db/index.ts";
@@ -170,11 +170,6 @@ export const listMySpaces = createServerFn({ method: "GET" }).handler(
 				isPremium: signSpaces.isPremium,
 				updatedAt: signSpaces.updatedAt,
 				marks: count(marks.id),
-				// Marks not authored by the owner — what the free cap counts (the
-				// guard against the joined no-marks row is why marks.id is checked).
-				guestMarks: count(
-					sql`case when ${marks.id} is not null and (${marks.authorId} is null or ${marks.authorId} is distinct from ${signSpaces.ownerId}) then 1 end`,
-				),
 				contributors: countDistinct(marks.authorId),
 			})
 			.from(signSpaces)

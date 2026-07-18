@@ -236,7 +236,7 @@ function SpaceCard({
 						) : (
 							<span className="inline-flex items-center gap-1.5 rounded-full bg-paper/85 px-2.5 py-1 text-xs font-semibold text-ink-soft shadow-sm backdrop-blur">
 								<Lock className="size-3.5" />
-								Free · {Math.min(space.guestMarks, FREE_MARK_LIMIT)}/
+								Free · {Math.min(space.marks, FREE_MARK_LIMIT)}/
 								{FREE_MARK_LIMIT}
 							</span>
 						)}

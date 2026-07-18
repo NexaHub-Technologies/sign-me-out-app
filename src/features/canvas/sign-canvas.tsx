@@ -173,40 +173,41 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		useRealtimeMarks(space.id, upsert, patch, remove, !sealed);
 		const locked = space.status === "locked";
 		const needsAuth = ready && !user;
-		// Free-tier caps: each guest gets one signature (FREE_GUEST_MARK_LIMIT),
-		// guests share a FREE_MARK_LIMIT pool, and the owner has their own
-		// (smaller) FREE_HOST_MARK_LIMIT — so a host can't dodge the guest
-		// limits by handing their signed-in device around. The server enforces
-		// the same rules in addMark; this is just the friendly gate.
+		// Free-tier caps: a free board holds at most FREE_MARK_LIMIT marks *in
+		// total* — host and guests share that one pool. Within it, each guest
+		// gets one signature (FREE_GUEST_MARK_LIMIT) and the owner is capped at
+		// FREE_HOST_MARK_LIMIT of their own, so a host can't dodge the shared
+		// limit by handing their signed-in device around. The server enforces
+		// the same rules in addMark (assertMarkAllowed); this is just the
+		// friendly client-side gate, mirroring its priority: the caller's own
+		// cap first, then the shared board-wide total.
 		const viewerIsOwner =
 			!!user && !!space.ownerId && user.id === space.ownerId;
-		const guestCount = marks.filter(
-			(m) => m.authorId === null || m.authorId !== space.ownerId,
-		).length;
-		const ownerCount = marks.length - guestCount;
 		const viewerOwnCount = user
 			? marks.filter((m) => m.authorId === user.id).length
 			: 0;
-		const guestsFull = !space.isPremium && guestCount >= FREE_MARK_LIMIT;
-		const hostFull = !space.isPremium && ownerCount >= FREE_HOST_MARK_LIMIT;
+		const boardFull = !space.isPremium && marks.length >= FREE_MARK_LIMIT;
+		const hostCapReached =
+			!space.isPremium &&
+			viewerIsOwner &&
+			viewerOwnCount >= FREE_HOST_MARK_LIMIT;
 		const viewerAlreadySigned =
 			!space.isPremium &&
 			!viewerIsOwner &&
 			viewerOwnCount >= FREE_GUEST_MARK_LIMIT;
 		// What stops *this viewer* from adding to the free board.
 		const freeCapReached = viewerIsOwner
-			? hostFull
-			: viewerAlreadySigned || guestsFull;
-		const capMessage =
-			viewerIsOwner && hostFull
-				? `You've placed your ${FREE_HOST_MARK_LIMIT} free marks — unlock this board for unlimited signing`
-				: !viewerIsOwner && viewerAlreadySigned
-					? "You've already left your signature on this free board — ask the host to unlock it for unlimited signing"
-					: guestsFull
-						? isHost
-							? `Guests filled your free board (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — unlock it for unlimited signing`
-							: `This free board is full (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — ask the host to unlock it`
-						: null;
+			? hostCapReached || boardFull
+			: viewerAlreadySigned || boardFull;
+		const capMessage = hostCapReached
+			? `You've placed your ${FREE_HOST_MARK_LIMIT} free marks — unlock this board for unlimited signing`
+			: !viewerIsOwner && viewerAlreadySigned
+				? "You've already left your signature on this free board — ask the host to unlock it for unlimited signing"
+				: boardFull
+					? isHost
+						? `Guests filled your free board (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — unlock it for unlimited signing`
+						: `This free board is full (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — ask the host to unlock it`
+					: null;
 
 		const colorHex =
 			MARKER_COLORS.find((c) => c.id === colorId)?.value ?? "#2f6be6";

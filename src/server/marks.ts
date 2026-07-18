@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, count, eq, isNull, ne, or } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 
 import { db } from "#/db/index.ts";
 import { marks, signSpaces } from "#/db/schema.ts";
@@ -58,12 +58,12 @@ export const addMark = createServerFn({ method: "POST" })
 		if (!space) throw new Error("Space not found");
 		if (space.status !== "open") throw new Error("This space is locked");
 
-		// Free-tier boards: no voice notes, one mark per guest (a real
-		// signature, not a spam vector), a shared FREE_MARK_LIMIT pool across
-		// all guests, and the owner's own separate FREE_HOST_MARK_LIMIT — so a
-		// host can't dodge the guest limits by handing their device around.
-		// Check-then-insert is racy under a simultaneous burst of signers (a
-		// couple of extras can slip in) — acceptable for a soft cap.
+		// Free-tier boards: no voice notes, a shared FREE_MARK_LIMIT pool across
+		// every mark on the board (host + guests combined), the owner limited
+		// to FREE_HOST_MARK_LIMIT of their own within that pool, and each guest
+		// limited to FREE_GUEST_MARK_LIMIT (one signature) of their own within
+		// it. Check-then-insert is racy under a simultaneous burst of signers
+		// (a couple of extras can slip in) — acceptable for a soft cap.
 		if (!space.isPremium) {
 			const isOwner = !!space.ownerId && user.id === space.ownerId;
 			// This caller's own visible marks on the board (owner's own, or
@@ -78,32 +78,17 @@ export const addMark = createServerFn({ method: "POST" })
 						eq(marks.authorId, user.id),
 					),
 				);
-
-			let guestTotal: number | undefined;
-			if (!isOwner) {
-				// The board-wide guest pool (everyone but the owner, incl.
-				// legacy null authors) — capped separately at FREE_MARK_LIMIT.
-				const guestBucket = space.ownerId
-					? or(isNull(marks.authorId), ne(marks.authorId, space.ownerId))
-					: undefined;
-				const [{ guests }] = await db
-					.select({ guests: count() })
-					.from(marks)
-					.where(
-						and(
-							eq(marks.spaceId, space.id),
-							eq(marks.status, "visible"),
-							guestBucket,
-						),
-					);
-				guestTotal = guests;
-			}
+			// Every visible mark on the board, from anyone — the shared ceiling.
+			const [{ total }] = await db
+				.select({ total: count() })
+				.from(marks)
+				.where(and(eq(marks.spaceId, space.id), eq(marks.status, "visible")));
 
 			assertMarkAllowed(data.kind, {
 				isPremium: space.isPremium,
 				isOwner,
 				count: own,
-				guestTotal,
+				boardTotal: total,
 			});
 		}
 

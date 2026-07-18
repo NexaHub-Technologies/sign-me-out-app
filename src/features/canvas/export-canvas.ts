@@ -158,6 +158,30 @@ export function exportCanvas(
 	}
 }
 
+/**
+ * Render the board's full content to a PNG data URL without downloading
+ * anything — used to texture the 3D product mockups. Shares the same
+ * hide-voice/hide-transformer/full-content-view pipeline as the download
+ * export, just returns the data URL instead of triggering a save.
+ */
+export function captureBoardPNG(
+	stage: Konva.Stage,
+	backgroundColor?: string,
+): string | null {
+	const restoreVoice = hideVoiceMarks(stage);
+	const restoreTransformers = hideTransformers(stage);
+	try {
+		return withFullContentView(
+			stage,
+			() => stage.toDataURL({ pixelRatio: 2, mimeType: "image/png" }),
+			backgroundColor,
+		);
+	} finally {
+		restoreTransformers();
+		restoreVoice();
+	}
+}
+
 function exportPNG(stage: Konva.Stage, baseName: string) {
 	const dataURL = stage.toDataURL({ pixelRatio: 2, mimeType: "image/png" });
 	downloadDataURL(dataURL, getFilename(baseName, "png"));

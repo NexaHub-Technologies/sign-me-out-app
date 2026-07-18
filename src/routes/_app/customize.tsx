@@ -1,12 +1,22 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { Check, ChevronDown, Loader2, Lock, Package } from "lucide-react";
-import { type CSSProperties, useEffect, useState } from "react";
+import {
+	Box,
+	Check,
+	ChevronDown,
+	Image as ImageIcon,
+	Loader2,
+	Lock,
+	Package,
+} from "lucide-react";
+import { type CSSProperties, lazy, Suspense, useEffect, useState } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import { Label } from "#/components/ui/label.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { useSessionUser } from "#/features/auth/use-session-user.ts";
+import { ClientOnly } from "#/features/canvas/client-only.tsx";
+import { hasMockup } from "#/features/mockup-3d/product-registry.ts";
 import {
 	COLOURS,
 	formatPrice,
@@ -19,6 +29,14 @@ import { placeMerchOrder } from "#/server/orders.ts";
 import { initMerchPayment } from "#/server/payments.ts";
 import { fetchSessionUser } from "#/server/session.ts";
 import { listMySpaces } from "#/server/spaces.ts";
+
+// Lazy: three.js + @react-three/fiber + drei are a large bundle, only needed
+// once someone reaches /customize with a 3D-covered product selected.
+const MockupPreview = lazy(() =>
+	import("#/features/mockup-3d/mockup-preview.tsx").then((m) => ({
+		default: m.MockupPreview,
+	})),
+);
 
 export const Route = createFileRoute("/_app/customize")({
 	ssr: false,
@@ -42,6 +60,7 @@ function CustomizePage() {
 	const [qty, setQty] = useState(1);
 	const [personalisation, setPersonalisation] = useState("");
 	const [boardSlug, setBoardSlug] = useState("");
+	const [show3D, setShow3D] = useState(true);
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [phone, setPhone] = useState("");
@@ -407,14 +426,74 @@ function CustomizePage() {
 				{/* summary */}
 				<div className="lg:sticky lg:top-24 lg:self-start">
 					<div className="paper-card rounded-3xl p-6">
-						<p className="kicker">Your order</p>
-						<div className="mt-4 overflow-hidden rounded-2xl border border-line bg-paper-2/70">
-							<img
-								src={product.image}
-								alt={product.name}
-								className="block h-auto w-full"
-							/>
+						<div className="flex items-center justify-between gap-2">
+							<p className="kicker">Your order</p>
+							{hasMockup(productId) && board && (
+								<div className="flex overflow-hidden rounded-full border border-line">
+									<button
+										type="button"
+										onClick={() => setShow3D(true)}
+										aria-pressed={show3D}
+										className={cn(
+											"flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors",
+											show3D
+												? "bg-marker-blue-deep/[0.08] text-ink"
+												: "text-ink-faint hover:text-ink-soft",
+										)}
+									>
+										<Box className="size-3" /> 3D
+									</button>
+									<button
+										type="button"
+										onClick={() => setShow3D(false)}
+										aria-pressed={!show3D}
+										className={cn(
+											"flex items-center gap-1 border-l border-line px-2.5 py-1 text-xs font-medium transition-colors",
+											!show3D
+												? "bg-marker-blue-deep/[0.08] text-ink"
+												: "text-ink-faint hover:text-ink-soft",
+										)}
+									>
+										<ImageIcon className="size-3" /> Photo
+									</button>
+								</div>
+							)}
 						</div>
+						{hasMockup(productId) && board && show3D ? (
+							<div className="mt-4">
+								<ClientOnly
+									fallback={
+										<div className="grid aspect-square w-full place-items-center rounded-2xl border border-line bg-paper-2/70">
+											<Loader2 className="size-6 animate-spin text-ink-faint" />
+										</div>
+									}
+								>
+									{() => (
+										<Suspense
+											fallback={
+												<div className="grid aspect-square w-full place-items-center rounded-2xl border border-line bg-paper-2/70">
+													<Loader2 className="size-6 animate-spin text-ink-faint" />
+												</div>
+											}
+										>
+											<MockupPreview
+												productId={productId}
+												boardSlug={board.slug}
+												color={colour.swatch}
+											/>
+										</Suspense>
+									)}
+								</ClientOnly>
+							</div>
+						) : (
+							<div className="mt-4 overflow-hidden rounded-2xl border border-line bg-paper-2/70">
+								<img
+									src={product.image}
+									alt={product.name}
+									className="block h-auto w-full"
+								/>
+							</div>
+						)}
 						<div className="mt-4">
 							<p className="font-display text-lg font-bold text-ink">
 								{product.name}

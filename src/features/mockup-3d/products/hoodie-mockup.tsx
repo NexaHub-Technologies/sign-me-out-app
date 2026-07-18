@@ -1,8 +1,5 @@
 import { useGLTF } from "@react-three/drei";
-import {
-	DRACO_DECODER_PATH,
-	type MockupProps,
-} from "#/features/mockup-3d/types.ts";
+import type { MockupProps } from "#/features/mockup-3d/types.ts";
 import { useGltfDesignTexture } from "#/features/mockup-3d/use-gltf-design-texture.ts";
 
 const MODEL_URL = "/models/hoodie.glb";
@@ -23,13 +20,15 @@ const CLOTH_MATERIALS = [
 	"Fabric374733_SIDE_76578",
 ];
 
-// Already Y-up (tallest axis is Y in the source scan) — just recentred and
-// scaled to roughly match the old procedural garment's on-screen size.
-const CENTER: [number, number, number] = [0.004, -0.951, 0.02];
-const SCALE = 1.5;
+// See tshirt-mockup.tsx — the baked node transform fixes orientation/scale
+// but not position; world bbox centre per `gltf-transform inspect` is
+// ~(-0.004, 1.202, -0.017), still needs recentring plus a scale-up.
+const CENTER: [number, number, number] = [0.0036, -1.2023, 0.0166];
+const SCALE = 2.9;
 
 export function HoodieMockup({ imageUrl, color }: MockupProps) {
-	const { scene, materials } = useGLTF(MODEL_URL, DRACO_DECODER_PATH);
+	// meshopt-compressed — see tshirt-mockup.tsx for why useDraco is off.
+	const { scene, materials } = useGLTF(MODEL_URL, false);
 	useGltfDesignTexture(materials, {
 		textureNames: FRONT_MATERIALS,
 		tintNames: CLOTH_MATERIALS,
@@ -46,4 +45,4 @@ export function HoodieMockup({ imageUrl, color }: MockupProps) {
 	);
 }
 
-useGLTF.preload(MODEL_URL, DRACO_DECODER_PATH);
+useGLTF.preload(MODEL_URL, false);

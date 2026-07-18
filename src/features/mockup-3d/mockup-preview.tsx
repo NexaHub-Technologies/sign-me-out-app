@@ -43,7 +43,20 @@ export function MockupPreview({
 					onCapture={onCapture}
 				/>
 			)}
-			<Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
+			{/* Canvas's own wrapper div has no intrinsic size — inside a parent
+			    sized only by CSS aspect-ratio (aspect-square, no explicit height),
+			    its react-use-measure container ends up unmeasurable and R3F falls
+			    back to the browser's default 300x150 canvas. Filling it explicitly
+			    gives it the parent's real box to observe. */}
+			<Canvas
+				camera={{ position: [0, 0, 5], fov: 50 }}
+				style={{
+					position: "absolute",
+					inset: 0,
+					width: "100%",
+					height: "100%",
+				}}
+			>
 				{/* <Canvas> runs its own React reconciler — a Suspense boundary
 				    outside it (e.g. around the lazy-loaded MockupPreview import in
 				    customize.tsx) does NOT catch a useGLTF() suspension from inside.

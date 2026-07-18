@@ -1,8 +1,5 @@
 import { useGLTF } from "@react-three/drei";
-import {
-	DRACO_DECODER_PATH,
-	type MockupProps,
-} from "#/features/mockup-3d/types.ts";
+import type { MockupProps } from "#/features/mockup-3d/types.ts";
 import { useGltfDesignTexture } from "#/features/mockup-3d/use-gltf-design-texture.ts";
 
 const MODEL_URL = "/models/tshirt.glb";
@@ -11,18 +8,22 @@ const MODEL_URL = "/models/tshirt.glb";
 // board texture and the garment colour tint.
 const MATERIALS = ["Material.001"];
 
-// Sourced as a flat-lay scan: its tallest axis is Z (shoulder-to-hem), not Y.
-// Rotating -90° about X stands it up (Z becomes the new vertical axis), then
-// it's recentred and scaled to roughly match the old procedural garment size.
-const ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
-// Negated raw bbox centre (0.006, 0.002, 1.275) — applied as the primitive's
-// own local position *before* the parent group's rotation, so the group's
-// rotation carries this offset along with the geometry automatically.
-const CENTER: [number, number, number] = [-0.006, -0.002, -1.275];
-const SCALE = 4.2;
+// The meshopt/quantize compression step bakes its own correcting
+// rotation+scale into the glb's root node (standard practice — it's what
+// makes `<primitive object={scene}>` come out at the right *orientation*),
+// but the mesh's own authored position still sits well off-origin (world
+// bbox centre ~(0.006, 1.275, -0.003) per `gltf-transform inspect`) — real
+// real-world-metre size too (~0.7 units tall), so still needs recentring
+// (applied on the primitive, *inside* the scaled group so the offset isn't
+// itself scaled) plus a scale-up to fill the frame.
+const CENTER: [number, number, number] = [-0.006, -1.2754, 0.0025];
+const SCALE = 3.3;
 
 export function TshirtMockup({ imageUrl, color }: MockupProps) {
-	const { scene, materials } = useGLTF(MODEL_URL, DRACO_DECODER_PATH);
+	// The glb is meshopt-compressed (gltf-transform optimize --compress
+	// meshopt) — drei's MeshoptDecoder is bundled and on by default, no
+	// separate decoder to host (unlike Draco). useDraco explicitly off.
+	const { scene, materials } = useGLTF(MODEL_URL, false);
 	useGltfDesignTexture(materials, {
 		textureNames: MATERIALS,
 		tintNames: MATERIALS,
@@ -33,10 +34,10 @@ export function TshirtMockup({ imageUrl, color }: MockupProps) {
 	});
 
 	return (
-		<group rotation={ROTATION} scale={SCALE}>
+		<group scale={SCALE}>
 			<primitive object={scene} position={CENTER} />
 		</group>
 	);
 }
 
-useGLTF.preload(MODEL_URL, DRACO_DECODER_PATH);
+useGLTF.preload(MODEL_URL, false);

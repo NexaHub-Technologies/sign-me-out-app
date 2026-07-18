@@ -87,6 +87,9 @@ function SpacePage() {
 	const [locking, setLocking] = useState(false);
 	const [notice, setNotice] = useState<string | null>(null);
 	const [boardColorId, setBoardColorId] = useState(space.boardColor);
+	// The header badge starts from the loader snapshot, then tracks the
+	// canvas's live (optimistic + realtime) count once it mounts.
+	const [markCount, setMarkCount] = useState(marks.length);
 	const canvasRef = useRef<SignCanvasHandle>(null);
 	const locked = space.status === "locked";
 	const board = boardColorById(boardColorId);
@@ -144,6 +147,7 @@ function SpacePage() {
 							initialMarks={marks}
 							isHost={isHost}
 							sealed={sealed}
+							onMarkCountChange={setMarkCount}
 						/>
 					)}
 				</ClientOnly>
@@ -183,8 +187,7 @@ function SpacePage() {
 							{locked && <Lock className="size-3.5 text-ink-faint" />}
 						</p>
 						<p className="truncate text-xs text-ink-faint">
-							/s/{space.slug} · {marks.length}{" "}
-							{marks.length === 1 ? "mark" : "marks"}
+							/s/{space.slug} · {markCount} {markCount === 1 ? "mark" : "marks"}
 						</p>
 					</div>
 				</div>

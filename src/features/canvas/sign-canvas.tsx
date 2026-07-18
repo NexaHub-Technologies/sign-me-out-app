@@ -118,6 +118,8 @@ export type SignCanvasProps = {
 	isHost: boolean;
 	/** True for a non-host viewing a still-sealed capsule (board withheld). */
 	sealed: boolean;
+	/** Fires whenever the live (optimistic + realtime) visible-mark count changes. */
+	onMarkCountChange?: (count: number) => void;
 };
 
 export type SignCanvasHandle = {
@@ -125,7 +127,10 @@ export type SignCanvasHandle = {
 };
 
 const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
-	function SignCanvas({ space, initialMarks, isHost, sealed }, ref) {
+	function SignCanvas(
+		{ space, initialMarks, isHost, sealed, onMarkCountChange },
+		ref,
+	) {
 		const wrapRef = useRef<HTMLDivElement>(null);
 		const stageRef = useRef<Konva.Stage>(null);
 		const draftRef = useRef<Draft | null>(null);
@@ -171,6 +176,10 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 		// A sealed capsule mustn't stream other people's marks to a signer —
 		// keep the subscription off until it opens.
 		useRealtimeMarks(space.id, upsert, patch, remove, !sealed);
+		// Surface the live (optimistic + realtime) count to the header badge.
+		useEffect(() => {
+			onMarkCountChange?.(count);
+		}, [count, onMarkCountChange]);
 		const locked = space.status === "locked";
 		const needsAuth = ready && !user;
 		// Free-tier caps: a free board holds at most FREE_MARK_LIMIT marks *in

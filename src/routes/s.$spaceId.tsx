@@ -7,10 +7,15 @@ import {
 import {
 	CircleHelp,
 	Download,
+	FileCode,
+	FileImage,
+	FileText,
+	Image,
 	Link2,
 	Loader2,
 	Lock,
 	LockOpen,
+	MoreVertical,
 	Palette,
 	Shirt,
 } from "lucide-react";
@@ -194,11 +199,16 @@ function SpacePage() {
 						<Link2 className="size-4" />
 						<span className="hidden sm:inline">Share</span>
 					</Button>
+					{/* Board colour, Lock, and locked-tier Export are desktop-only inline —
+					    on mobile they move into MoreMenu below to keep the header from
+					    crowding out with 6+ controls on a phone-width screen. */}
 					{isHost && (
-						<BoardColorPicker
-							value={boardColorId}
-							onChange={changeBoardColor}
-						/>
+						<div className="hidden sm:contents">
+							<BoardColorPicker
+								value={boardColorId}
+								onChange={changeBoardColor}
+							/>
+						</div>
 					)}
 					{isHost && (
 						<Button
@@ -207,6 +217,7 @@ function SpacePage() {
 							data-tour="lock"
 							onClick={toggleLock}
 							disabled={locking}
+							className="hidden sm:inline-flex"
 						>
 							{locking ? (
 								<Loader2 className="size-4 animate-spin" />
@@ -222,15 +233,17 @@ function SpacePage() {
 					)}
 					{isHost &&
 						(space.isPremium ? (
-							<ExportPicker
-								onExport={(format) => {
-									const stage = canvasRef.current?.getStage();
-									if (!stage) return;
-									exportCanvas(stage, format, space.slug || "sign-me-out", {
-										backgroundColor: board.bg,
-									});
-								}}
-							/>
+							<div className="hidden sm:contents">
+								<ExportPicker
+									onExport={(format) => {
+										const stage = canvasRef.current?.getStage();
+										if (!stage) return;
+										exportCanvas(stage, format, space.slug || "sign-me-out", {
+											backgroundColor: board.bg,
+										});
+									}}
+								/>
+							</div>
 						) : (
 							<Button
 								variant="outline"
@@ -238,6 +251,7 @@ function SpacePage() {
 								onClick={() =>
 									flashNotice("Unlock this board to download exports")
 								}
+								className="hidden sm:inline-flex"
 							>
 								<Download className="size-4" />
 								<span className="hidden sm:inline">Export</span>
@@ -252,12 +266,32 @@ function SpacePage() {
 							onError={flashNotice}
 						/>
 					)}
-					<Button asChild size="sm">
+					<Button asChild size="sm" className="hidden sm:inline-flex">
 						<Link to="/wear">
 							<Shirt className="size-4" />
 							<span className="hidden sm:inline">Wear it</span>
 						</Link>
 					</Button>
+
+					<MoreMenu
+						isHost={isHost}
+						boardColorId={boardColorId}
+						onChangeBoardColor={changeBoardColor}
+						locked={locked}
+						locking={locking}
+						onToggleLock={toggleLock}
+						isPremium={space.isPremium}
+						onExport={(format) => {
+							const stage = canvasRef.current?.getStage();
+							if (!stage) return;
+							exportCanvas(stage, format, space.slug || "sign-me-out", {
+								backgroundColor: board.bg,
+							});
+						}}
+						onLockedExportClick={() =>
+							flashNotice("Unlock this board to download exports")
+						}
+					/>
 				</div>
 			</header>
 
@@ -366,6 +400,183 @@ function BoardColorPicker({
 						))}
 					</div>
 					<p className="mt-2 text-xs text-ink-soft">{current.label}</p>
+				</div>
+			)}
+		</div>
+	);
+}
+
+type ExportFormat = "png" | "jpg" | "svg" | "pdf";
+const EXPORT_FORMATS: {
+	id: ExportFormat;
+	label: string;
+	icon: typeof FileImage;
+}[] = [
+	{ id: "png", label: "PNG", icon: Image },
+	{ id: "jpg", label: "JPG", icon: FileImage },
+	{ id: "svg", label: "SVG", icon: FileCode },
+	{ id: "pdf", label: "PDF", icon: FileText },
+];
+
+/**
+ * Mobile-only overflow menu (its trigger is `sm:hidden`) bundling the header
+ * actions that don't fit inline on a phone-width screen: board colour, lock,
+ * export, and wear it. Desktop keeps each as its own always-visible button —
+ * this component renders nothing extra there.
+ */
+function MoreMenu({
+	isHost,
+	boardColorId,
+	onChangeBoardColor,
+	locked,
+	locking,
+	onToggleLock,
+	isPremium,
+	onExport,
+	onLockedExportClick,
+}: {
+	isHost: boolean;
+	boardColorId: string;
+	onChangeBoardColor: (id: string) => void;
+	locked: boolean;
+	locking: boolean;
+	onToggleLock: () => void;
+	isPremium: boolean;
+	onExport: (format: ExportFormat) => void;
+	onLockedExportClick: () => void;
+}) {
+	const [open, setOpen] = useState(false);
+	const ref = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!open) return;
+		function onDown(e: MouseEvent) {
+			if (ref.current && !ref.current.contains(e.target as Node)) {
+				setOpen(false);
+			}
+		}
+		function onKey(e: KeyboardEvent) {
+			if (e.key === "Escape") setOpen(false);
+		}
+		document.addEventListener("mousedown", onDown);
+		document.addEventListener("keydown", onKey);
+		return () => {
+			document.removeEventListener("mousedown", onDown);
+			document.removeEventListener("keydown", onKey);
+		};
+	}, [open]);
+
+	return (
+		<div ref={ref} className="relative sm:hidden">
+			<Button
+				variant="outline"
+				size="sm"
+				onClick={() => setOpen((v) => !v)}
+				aria-haspopup="menu"
+				aria-expanded={open}
+				aria-label="More actions"
+			>
+				<MoreVertical className="size-4" />
+			</Button>
+			{open && (
+				<div
+					role="menu"
+					className="paper-card absolute right-0 z-50 mt-2 w-60 rounded-2xl p-2"
+				>
+					{isHost && (
+						<>
+							<p className="kicker mb-1.5 px-2 pt-1">Board colour</p>
+							<div className="grid grid-cols-6 gap-2 px-2 pb-2">
+								{BOARD_COLORS.map((c) => (
+									<button
+										key={c.id}
+										type="button"
+										onClick={() => {
+											onChangeBoardColor(c.id);
+											setOpen(false);
+										}}
+										title={c.label}
+										aria-label={c.label}
+										aria-pressed={boardColorId === c.id}
+										className={cn(
+											"size-7 rounded-full border transition-transform",
+											boardColorId === c.id
+												? "border-transparent ring-2 ring-marker-blue ring-offset-2 ring-offset-card"
+												: "border-line hover:scale-110",
+										)}
+										style={{ backgroundColor: c.bg }}
+									/>
+								))}
+							</div>
+
+							<div className="my-1 h-px bg-line" />
+
+							<button
+								type="button"
+								onClick={() => {
+									onToggleLock();
+									setOpen(false);
+								}}
+								disabled={locking}
+								className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-ink/5 disabled:opacity-50"
+							>
+								{locking ? (
+									<Loader2 className="size-4 shrink-0 animate-spin text-ink-soft" />
+								) : locked ? (
+									<LockOpen className="size-4 shrink-0 text-ink-soft" />
+								) : (
+									<Lock className="size-4 shrink-0 text-ink-soft" />
+								)}
+								{locked ? "Unlock signing" : "Lock signing"}
+							</button>
+
+							<div className="my-1 h-px bg-line" />
+
+							{isPremium ? (
+								<>
+									<p className="kicker mb-1 px-2 pt-1">Export as</p>
+									{EXPORT_FORMATS.map((f) => (
+										<button
+											key={f.id}
+											type="button"
+											onClick={() => {
+												onExport(f.id);
+												setOpen(false);
+											}}
+											className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-ink/5"
+										>
+											<f.icon className="size-4 shrink-0 text-ink-soft" />
+											{f.label}
+										</button>
+									))}
+								</>
+							) : (
+								<button
+									type="button"
+									onClick={() => {
+										onLockedExportClick();
+										setOpen(false);
+									}}
+									className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-ink/5"
+								>
+									<Download className="size-4 shrink-0 text-ink-soft" />
+									Export
+									<Lock className="size-3 text-ink-faint" />
+								</button>
+							)}
+
+							<div className="my-1 h-px bg-line" />
+						</>
+					)}
+
+					<Link
+						to="/wear"
+						onClick={() => setOpen(false)}
+						className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-ink/5"
+					>
+						<Shirt className="size-4 shrink-0 text-ink-soft" />
+						Wear it
+					</Link>
 				</div>
 			)}
 		</div>

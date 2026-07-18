@@ -62,7 +62,7 @@ export function assertMarkAllowed(
 	}
 	if (opts.count >= FREE_GUEST_MARK_LIMIT) {
 		throw new Error(
-			"You've already left your signature on this free board — unlock the board for unlimited signing",
+			"You've already left your signature on this free board — ask the host to unlock it for unlimited signing",
 		);
 	}
 	if ((opts.guestTotal ?? opts.count) >= FREE_MARK_LIMIT) {

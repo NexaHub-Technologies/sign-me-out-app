@@ -201,7 +201,7 @@ const SignCanvas = forwardRef<SignCanvasHandle, SignCanvasProps>(
 			viewerIsOwner && hostFull
 				? `You've placed your ${FREE_HOST_MARK_LIMIT} free marks — unlock this board for unlimited signing`
 				: !viewerIsOwner && viewerAlreadySigned
-					? "You've already left your signature on this free board — unlock the board for unlimited signing"
+					? "You've already left your signature on this free board — ask the host to unlock it for unlimited signing"
 					: guestsFull
 						? isHost
 							? `Guests filled your free board (${FREE_MARK_LIMIT}/${FREE_MARK_LIMIT}) — unlock it for unlimited signing`

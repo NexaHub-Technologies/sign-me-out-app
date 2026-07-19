@@ -35,7 +35,18 @@ export function MockupPreview({
 	if (!hasMockup(productId) || !boardSlug) return null;
 
 	return (
-		<div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-line bg-paper-2/70">
+		<div
+			className="relative aspect-square w-full overflow-hidden rounded-2xl border border-line"
+			// A themed slate-blue, mixed from the app's own marker-blue + paper-2
+			// tokens (so it tracks light/dark mode automatically) — solid rather
+			// than translucent, deliberately darker than the page background so
+			// light-coloured garments (most of the catalogue) read clearly
+			// against it instead of blending into a near-white box.
+			style={{
+				backgroundColor:
+					"color-mix(in oklab, var(--marker-blue) 28%, var(--paper-2))",
+			}}
+		>
 			{marks && (
 				<BoardTextureCapture
 					marks={marks}

@@ -17,7 +17,7 @@ const MATERIALS = ["Material.001"];
 // (applied on the primitive, *inside* the scaled group so the offset isn't
 // itself scaled) plus a scale-up to fill the frame.
 const CENTER: [number, number, number] = [-0.006, -1.2754, 0.0025];
-const SCALE = 3.3;
+const SCALE = 2.8;
 
 export function TshirtMockup({ imageUrl, color }: MockupProps) {
 	// The glb is meshopt-compressed (gltf-transform optimize --compress

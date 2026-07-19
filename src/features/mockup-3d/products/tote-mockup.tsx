@@ -15,7 +15,7 @@ const ALL_MATERIALS = ["Chi.002", ...BAG_MATERIALS];
 // ~0.7-0.9) — world bbox centre per `gltf-transform inspect` is
 // ~(-0.002, 3.762, 0.127).
 const CENTER: [number, number, number] = [0.0024, -3.7619, -0.1268];
-const SCALE = 0.28;
+const SCALE = 0.37;
 
 export function ToteMockup({ imageUrl, color }: MockupProps) {
 	// meshopt-compressed — see tshirt-mockup.tsx for why useDraco is off.

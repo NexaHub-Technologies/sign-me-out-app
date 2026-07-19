@@ -24,7 +24,7 @@ const CLOTH_MATERIALS = [
 // but not position; world bbox centre per `gltf-transform inspect` is
 // ~(-0.004, 1.202, -0.017), still needs recentring plus a scale-up.
 const CENTER: [number, number, number] = [0.0036, -1.2023, 0.0166];
-const SCALE = 2.5;
+const SCALE = 3.3;
 
 export function HoodieMockup({ imageUrl, color }: MockupProps) {
 	// meshopt-compressed — see tshirt-mockup.tsx for why useDraco is off.

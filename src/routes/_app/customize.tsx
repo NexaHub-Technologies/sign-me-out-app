@@ -452,6 +452,9 @@ function CustomizePage() {
 									{formatPrice(totalKobo)}
 								</dd>
 							</div>
+							<p className="mt-2 text-xs text-ink-faint">
+								* Price does not include delivery fees
+							</p>
 						</dl>
 
 						{error && (

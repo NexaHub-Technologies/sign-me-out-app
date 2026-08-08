@@ -19,7 +19,7 @@ export const PRODUCTS: Product[] = [
 		name: "Sign-out tee",
 		group: "Wear",
 		sizes: true,
-		priceKobo: 1_200_000,
+		priceKobo: 1_700_000,
 		image: "/images/tee.png",
 	},
 	{

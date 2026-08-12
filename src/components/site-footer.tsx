@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { Logo } from "#/components/logo.tsx";
+import { NEXAHUB_MARK_PATH, NEXAHUB_MARK_VIEWBOX } from "#/lib/nexahub-mark.ts";
 
 const columns = [
 	{
@@ -64,15 +65,12 @@ export function SiteFooter() {
 			<div className="page-wrap flex flex-col items-center justify-between gap-3 border-t border-line py-6 text-sm text-ink-faint sm:flex-row">
 				<p className="flex items-center gap-2">
 					<svg
-						viewBox="2632 371 1260 1260"
+						viewBox={NEXAHUB_MARK_VIEWBOX}
 						className="size-5"
 						fill="none"
 						aria-hidden="true"
 					>
-						<path
-							d="M2632.489,371.6L3018.089,371.6L3018.089,471.6L2732.489,471.6L2732.489,950L2632.489,950L2632.489,371.6ZM3118.089,1528.4L3403.689,1528.4L3403.689,1628.4L3118.089,1628.4L3118.089,1528.4ZM3889.289,1624.8L3503.689,1624.8L3503.689,1524.8L3789.289,1524.8L3789.289,1046.4L3889.289,1046.4L3889.289,1624.8ZM2825.289,564.4L3696.489,564.4L3696.489,1435.6L2825.289,1435.6L2825.289,564.4ZM3889.289,375.2L3889.289,953.6L3789.289,953.6L3789.289,475.2L3503.689,475.2L3503.689,375.2L3889.289,375.2ZM3118.089,371.6L3403.689,371.6L3403.689,471.6L3118.089,471.6L3118.089,371.6ZM2732.489,1050L2732.489,1528.4L3018.089,1528.4L3018.089,1628.4L2632.489,1628.4L2632.489,1050L2732.489,1050Z"
-							fill="currentColor"
-						/>
+						<path d={NEXAHUB_MARK_PATH} fill="currentColor" />
 					</svg>
 					© {new Date().getFullYear()} Sign Me Out by NexaHub Technologies Ltd.
 				</p>

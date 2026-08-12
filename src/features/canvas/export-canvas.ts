@@ -23,6 +23,9 @@ const WATERMARK_MIN_SIZE = 18;
 const WATERMARK_MAX_SIZE = 40;
 const WATERMARK_MARGIN = 16;
 const WATERMARK_OPACITY = 0.5;
+// The mark + wordmark lockup never claims more than this share of the frame's
+// width; past it the whole lockup scales down to fit.
+const WATERMARK_MAX_WIDTH_RATIO = 0.4;
 
 function hideVoiceMarks(stage: Konva.Stage) {
 	const voices = stage.find(".voice-mark");
@@ -81,12 +84,19 @@ function watermarkSize(contentWidth: number, contentHeight: number): number {
 
 /**
  * Drop the NexaHub mark + wordmark into the bottom-right corner of the export
- * frame, right-aligned and sitting on the baseline `bottom`. Returns a cleanup
+ * frame, right-aligned and sitting on the baseline `bottom`. Shrinks to fit
+ * `maxWidth`, so the lockup never overruns a narrow export. Returns a cleanup
  * that removes it — the live board is never watermarked.
  */
 function addWatermark(
 	layer: Konva.Layer,
-	opts: { right: number; bottom: number; size: number; ink: string },
+	opts: {
+		right: number;
+		bottom: number;
+		size: number;
+		ink: string;
+		maxWidth: number;
+	},
 ) {
 	const { right, bottom, size, ink } = opts;
 	const gap = size * 0.38;
@@ -108,7 +118,7 @@ function addWatermark(
 	});
 
 	const label = new Konva.Text({
-		text: "NexaHub",
+		text: "NexaHub Technologies",
 		fontFamily: "Manrope, sans-serif",
 		fontStyle: "bold",
 		fontSize: size * 0.56,
@@ -120,9 +130,16 @@ function addWatermark(
 	});
 
 	group.add(glyph, label);
+
+	// Shrink the whole lockup (mark + wordmark together) when the frame is too
+	// narrow to hold it at full size — a board with one small mark exports to a
+	// thumbnail the watermark would otherwise overrun.
+	const lockupWidth = size + gap + label.width();
+	const shrink = Math.min(1, opts.maxWidth / lockupWidth);
+	group.scale({ x: shrink, y: shrink });
 	group.position({
-		x: right - (size + gap + label.width()),
-		y: bottom - size,
+		x: right - lockupWidth * shrink,
+		y: bottom - size * shrink,
 	});
 	layer.add(group);
 
@@ -197,6 +214,10 @@ function withFullContentView<T>(
 		bottom: y + height - WATERMARK_MARGIN,
 		size: brandSize,
 		ink: watermarkInk(opts.boardColor),
+		maxWidth: Math.min(
+			width - WATERMARK_MARGIN * 2,
+			width * WATERMARK_MAX_WIDTH_RATIO,
+		),
 	});
 
 	// Grow the stage canvas to the full box and shift content into view.

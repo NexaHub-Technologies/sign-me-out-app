@@ -109,22 +109,26 @@ async function createEligibility(userId: string): Promise<{
 	canCreate: boolean;
 	upgradeTarget: { slug: string; title: string } | null;
 }> {
-	const owned = await db
-		.select({
-			slug: signSpaces.slug,
-			title: signSpaces.title,
-			isPremium: signSpaces.isPremium,
-		})
-		.from(signSpaces)
-		.where(eq(signSpaces.ownerId, userId))
-		.orderBy(desc(signSpaces.updatedAt));
+	// Both lookups are keyed by userId and neither feeds the other, so they go
+	// out together — the profile stamp was previously a second round trip that
+	// only started once the board list came back.
+	const [owned, [profile]] = await Promise.all([
+		db
+			.select({
+				slug: signSpaces.slug,
+				title: signSpaces.title,
+				isPremium: signSpaces.isPremium,
+			})
+			.from(signSpaces)
+			.where(eq(signSpaces.ownerId, userId))
+			.orderBy(desc(signSpaces.updatedAt)),
+		db
+			.select({ spacesUnlockedAt: profiles.spacesUnlockedAt })
+			.from(profiles)
+			.where(eq(profiles.id, userId))
+			.limit(1),
+	]);
 	if (owned.length === 0) return { canCreate: true, upgradeTarget: null };
-
-	const [profile] = await db
-		.select({ spacesUnlockedAt: profiles.spacesUnlockedAt })
-		.from(profiles)
-		.where(eq(profiles.id, userId))
-		.limit(1);
 	if (profile?.spacesUnlockedAt)
 		return { canCreate: true, upgradeTarget: null };
 
@@ -135,12 +139,19 @@ async function createEligibility(userId: string): Promise<{
 	};
 }
 
-/** Create-page data: may this account open another board, and if not, which board to unlock. */
+/**
+ * Create-page data: may this account open another board, and if not, which board
+ * to unlock. Returns the session user as well so the route can gate on it from
+ * this one call — resolving the user in `beforeLoad` and the eligibility in the
+ * loader meant two sequential round trips, each re-validating the same JWT.
+ */
 export const getCreateEligibility = createServerFn({ method: "GET" }).handler(
 	async () => {
 		const user = await getSessionUser();
-		if (!user) return { canCreate: false, upgradeTarget: null };
-		return createEligibility(user.id);
+		if (!user) {
+			return { user: null, canCreate: false, upgradeTarget: null };
+		}
+		return { user, ...(await createEligibility(user.id)) };
 	},
 );
 
@@ -159,8 +170,8 @@ export const listMySpaces = createServerFn({ method: "GET" }).handler(
 			user ? eq(signSpaces.ownerId, user.id) : undefined,
 			hostToken ? eq(signSpaces.hostToken, hostToken) : undefined,
 		].filter((c) => c !== undefined);
-		if (owners.length === 0) return [];
-		return db
+		if (owners.length === 0) return { user, spaces: [] };
+		const spaces = await db
 			.select({
 				id: signSpaces.id,
 				slug: signSpaces.slug,
@@ -180,20 +191,25 @@ export const listMySpaces = createServerFn({ method: "GET" }).handler(
 			.where(or(...owners))
 			.groupBy(signSpaces.id)
 			.orderBy(desc(signSpaces.updatedAt));
+		// The user rides along so a route can gate on sign-in without a second
+		// round trip just to resolve the same session.
+		return { user, spaces };
 	},
 );
 
 export const getSpaceBySlug = createServerFn({ method: "GET" })
 	.validator((slug: string) => slug)
 	.handler(async ({ data: slug }) => {
-		const [space] = await db
-			.select()
-			.from(signSpaces)
-			.where(eq(signSpaces.slug, slug))
-			.limit(1);
+		// The board lookup and the session check don't depend on each other, and
+		// validating a signed-in user's JWT is a network round trip to Supabase
+		// Auth — running them in sequence put that latency on the critical path
+		// of every board load. (Anonymous visitors resolve locally, no request.)
+		const [[space], user] = await Promise.all([
+			db.select().from(signSpaces).where(eq(signSpaces.slug, slug)).limit(1),
+			getSessionUser(),
+		]);
 		if (!space) return null;
 
-		const user = await getSessionUser();
 		const isHost = isSpaceHost(space, user);
 
 		// If this is a capsule whose time has come, open it + email signers once.

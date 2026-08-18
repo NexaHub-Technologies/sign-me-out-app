@@ -25,19 +25,20 @@ import {
 	templateById,
 } from "#/lib/space-templates.ts";
 import { cn } from "#/lib/utils.ts";
-import { fetchSessionUser } from "#/server/session.ts";
 import { createSpace, getCreateEligibility } from "#/server/spaces.ts";
 
 export const Route = createFileRoute("/_app/create")({
-	// A board belongs to an account, so opening one requires signing in.
-	beforeLoad: async () => {
-		const user = await fetchSessionUser();
-		if (!user) {
+	// A board belongs to an account, so opening one requires signing in — but the
+	// gate lives here rather than in `beforeLoad` so it shares the eligibility
+	// call. Two hooks meant two sequential round trips validating the same JWT.
+	// One free board per account until the first unlock opens unlimited boards.
+	loader: async () => {
+		const data = await getCreateEligibility();
+		if (!data.user) {
 			throw redirect({ to: "/login", search: { next: "/create" } });
 		}
+		return data;
 	},
-	// One free board per account until the first unlock opens unlimited boards.
-	loader: () => getCreateEligibility(),
 	component: CreatePage,
 });
 

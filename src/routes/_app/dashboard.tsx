@@ -26,7 +26,7 @@ type DashboardSpace = ReturnType<typeof Route.useLoaderData>[number];
 
 export const Route = createFileRoute("/_app/dashboard")({
 	ssr: false,
-	loader: async () => listMySpaces(),
+	loader: async () => (await listMySpaces()).spaces,
 	component: DashboardPage,
 });
 

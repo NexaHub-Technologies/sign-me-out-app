@@ -18,18 +18,19 @@ import { cn } from "#/lib/utils.ts";
 import type { OrderInput } from "#/server/order-validation.ts";
 import { placeMerchOrder } from "#/server/orders.ts";
 import { initMerchPayment } from "#/server/payments.ts";
-import { fetchSessionUser } from "#/server/session.ts";
 import { listMySpaces } from "#/server/spaces.ts";
 
 export const Route = createFileRoute("/_app/customize")({
 	ssr: false,
-	beforeLoad: async () => {
-		const user = await fetchSessionUser();
-		if (!user) {
+	// Sign-in gate folded into the loader: `beforeLoad` needed its own round trip
+	// to resolve a session the loader was about to resolve again anyway.
+	loader: async () => {
+		const data = await listMySpaces();
+		if (!data.user) {
 			throw redirect({ to: "/login", search: { next: "/customize" } });
 		}
+		return data.spaces;
 	},
-	loader: async () => listMySpaces(),
 	component: CustomizePage,
 });
 

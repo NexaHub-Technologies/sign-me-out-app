@@ -1,5 +1,19 @@
 # Sign Me Out — architecture sequence diagrams
 
+> **Superseded by [`SYSTEM_ARCHITECTURE.md`](./SYSTEM_ARCHITECTURE.md).** Kept for the reasoning
+> trail, not as current reference.
+>
+> **What is now wrong here:** §3 describes a *pay-to-create* model — ₦1,000 charged before a
+> space exists, `initSpacePayment`/`createSpace(…reference)`, and a `payments.space_id` consumed
+> at creation. The system now creates boards free and charges ₦1,000 to *unlock* an existing one
+> (`initSpaceUnlock`/`completeSpaceUnlock`). §6's claim that deleting a space drops its payment
+> rows in the same transaction is also outdated: `payments.space_id` is `ON DELETE SET NULL`, so
+> the row survives and keeps the reference spent. §1 predates `is_premium`, `merch_orders` and
+> `feedback`, and nothing here covers the Paystack webhook.
+>
+> **What is still accurate:** §2 (identity — signers vs. cookie-only hosts), §4 (capsule reveal
+> on read), §5 (optimistic writes and realtime merge), and §6's `assertCanEdit` rule.
+
 Sign Me Out is a paid, shareable infinite canvas: a host opens a board for ₦1,000, friends
 sign it with strokes, notes, photos and voice messages, and everything syncs live. These
 diagrams trace the six structures that hold the app together, each drawn from the actual

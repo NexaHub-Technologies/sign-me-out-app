@@ -28,10 +28,17 @@ function service(): SupabaseClient {
 	return serviceClient;
 }
 
-/** Mint a short-lived signed URL for a private voice object path. */
+/**
+ * Mint a short-lived signed URL for a private voice object path.
+ *
+ * The URL is a bearer token for its lifetime — anyone it's forwarded to can play
+ * the recording — so the only real lever is how long that window stays open.
+ * `getVoiceUrl` mints one per playback, so a short TTL costs nothing but a
+ * round-trip when someone replays.
+ */
 export async function signVoiceUrl(
 	path: string,
-	ttlSeconds = 300,
+	ttlSeconds = 60,
 ): Promise<string> {
 	const { data, error } = await service()
 		.storage.from(VOICE_BUCKET)

@@ -22,6 +22,7 @@ import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCustomizeRouteImport } from './routes/_app/customize'
 import { Route as AppCreateRouteImport } from './routes/_app/create'
+import { Route as V1WebhooksPaystackRouteImport } from './routes/v1/webhooks/paystack'
 
 const MarketingRoute = MarketingRouteImport.update({
   id: '/_marketing',
@@ -85,6 +86,11 @@ const AppCreateRoute = AppCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => AppRoute,
 } as any)
+const V1WebhooksPaystackRoute = V1WebhooksPaystackRouteImport.update({
+  id: '/v1/webhooks/paystack',
+  path: '/v1/webhooks/paystack',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof MarketingIndexRoute
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/wear': typeof MarketingWearRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/s/$spaceId': typeof SSpaceIdRoute
+  '/v1/webhooks/paystack': typeof V1WebhooksPaystackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof MarketingIndexRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/wear': typeof MarketingWearRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/s/$spaceId': typeof SSpaceIdRoute
+  '/v1/webhooks/paystack': typeof V1WebhooksPaystackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/s/$spaceId': typeof SSpaceIdRoute
   '/_marketing/': typeof MarketingIndexRoute
+  '/v1/webhooks/paystack': typeof V1WebhooksPaystackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/wear'
     | '/auth/callback'
     | '/s/$spaceId'
+    | '/v1/webhooks/paystack'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/wear'
     | '/auth/callback'
     | '/s/$spaceId'
+    | '/v1/webhooks/paystack'
   id:
     | '__root__'
     | '/_app'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/s/$spaceId'
     | '/_marketing/'
+    | '/v1/webhooks/paystack'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -174,6 +186,7 @@ export interface RootRouteChildren {
   MarketingRoute: typeof MarketingRouteWithChildren
   AuthCallbackRoute: typeof AuthCallbackRoute
   SSpaceIdRoute: typeof SSpaceIdRoute
+  V1WebhooksPaystackRoute: typeof V1WebhooksPaystackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -269,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCreateRouteImport
       parentRoute: typeof AppRoute
     }
+    '/v1/webhooks/paystack': {
+      id: '/v1/webhooks/paystack'
+      path: '/v1/webhooks/paystack'
+      fullPath: '/v1/webhooks/paystack'
+      preLoaderRoute: typeof V1WebhooksPaystackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -320,6 +340,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketingRoute: MarketingRouteWithChildren,
   AuthCallbackRoute: AuthCallbackRoute,
   SSpaceIdRoute: SSpaceIdRoute,
+  V1WebhooksPaystackRoute: V1WebhooksPaystackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -48,6 +48,9 @@ Create `.env.local` with:
    policies, adds `marks` to the `supabase_realtime` publication, creates the
    `space-media` (public) and `space-voice` (private) storage buckets, enables RLS on
    the server-only `payments` table, and wires the `auth.users → profiles` trigger.
+   **Re-run it whenever that file changes**: it is applied by hand, so editing it does
+   not update a live project. The `marks` read policy in particular is what keeps an
+   unopened time capsule unreadable — an out-of-date copy leaves the board exposed.
 
 ### Payments setup (Paystack)
 
@@ -55,6 +58,20 @@ Creating a space is gated on a one-time ₦1,000 Paystack charge. Add your **tes
 `PAYSTACK_SECRET_KEY` to `.env.local`, then on `/create`, sign in and pay with the
 Paystack test card `4084 0840 8408 4081` (any future expiry/CVV, OTP `123456`). The
 charge is verified server-side before the space is created.
+
+**Register the webhook** (required in production). Paystack → Settings → API Keys &
+Webhooks → *Webhook URL*: `https://<your-domain>/v1/webhooks/paystack`.
+
+The browser tells us a payment succeeded, but that call is best-effort — a closed tab
+or dropped connection loses it, and since nothing is written to the DB until payment
+is confirmed, losing it means the money moved and we hold no record. The webhook is
+the durable path: Paystack retries it until it gets a 2xx, and it records the same
+unlock or order from the transaction metadata with no browser involved. Both paths are
+idempotent, so whichever arrives first wins. Requests are authenticated by the
+`x-paystack-signature` HMAC over the raw body, keyed with `PAYSTACK_SECRET_KEY`.
+
+To exercise it locally, tunnel the port (`npx untun@latest tunnel http://localhost:3000`)
+and point the dashboard's webhook URL at the public address.
 
 ## How it works
 
@@ -113,7 +130,24 @@ npm run check        # Biome lint + format check
 npm run db:generate  # generate a migration from schema.ts
 npm run db:migrate   # apply migrations
 npm run db:studio    # Drizzle Studio
+npm run reconcile    # find Paystack charges missing from the DB (see below)
 ```
+
+### Reconciling payments
+
+A payment row is written only after a charge is confirmed, by the buyer's browser or by the
+webhook. If both fail, the money exists only in the Paystack dashboard:
+
+```bash
+npm run reconcile                          # last 7 days
+npm run reconcile -- --since 2026-08-01    # explicit window
+npm run reconcile -- --replay <reference>  # record one that was missed
+```
+
+`--replay` re-delivers a signed `charge.success` webhook rather than writing rows itself, so it
+goes through the same verified, idempotent path as a real Paystack callback. Point it at a
+deployment with `--target https://your-domain` (defaults to `http://localhost:3000`). The script
+exits non-zero when it finds unrecorded charges, so it can be run from CI or a cron host.
 
 ## Deploy to Vercel
 

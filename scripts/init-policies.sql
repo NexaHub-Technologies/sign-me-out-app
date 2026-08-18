@@ -14,9 +14,25 @@ drop policy if exists "spaces_select" on public.sign_spaces;
 create policy "spaces_select" on public.sign_spaces
   for select to anon, authenticated using (true);
 
+-- Visible marks are readable — except on a time capsule that hasn't opened yet.
+-- Without the reveal_at clause the seal is app-layer only: getSpaceBySlug withholds
+-- the marks, but the sealed response still hands the client the space id, so anyone
+-- with the public anon key could read the whole board over PostgREST or Realtime.
+-- owner_id lets a signed-in host keep live updates on their own sealed capsule;
+-- cookie-only hosts (owner_id null) still load marks via the service connection,
+-- they just don't stream until it opens.
+-- (select auth.uid()) is deliberate — the bare call re-evaluates per row.
 drop policy if exists "marks_select" on public.marks;
 create policy "marks_select" on public.marks
-  for select to anon, authenticated using (status = 'visible');
+  for select to anon, authenticated using (
+    status = 'visible' and exists (
+      select 1 from public.sign_spaces s
+      where s.id = space_id
+        and (   s.reveal_at is null
+             or s.reveal_at <= now()
+             or s.owner_id = (select auth.uid()) )
+    )
+  );
 
 drop policy if exists "profiles_select" on public.profiles;
 create policy "profiles_select" on public.profiles

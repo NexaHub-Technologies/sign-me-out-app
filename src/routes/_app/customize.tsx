@@ -15,6 +15,7 @@ import {
 	SIZES,
 } from "#/lib/order-options.ts";
 import { cn } from "#/lib/utils.ts";
+import type { OrderInput } from "#/server/order-validation.ts";
 import { placeMerchOrder } from "#/server/orders.ts";
 import { initMerchPayment } from "#/server/payments.ts";
 import { fetchSessionUser } from "#/server/session.ts";
@@ -53,6 +54,13 @@ function CustomizePage() {
 		reference: string;
 		confirmationSent: boolean;
 	} | null>(null);
+	// Held after a successful charge whose recording failed. Retrying must reuse
+	// this reference *and* the details it was charged against — starting over
+	// would open a second Paystack transaction and bill the buyer twice.
+	const [pendingOrder, setPendingOrder] = useState<{
+		reference: string;
+		details: OrderInput;
+	} | null>(null);
 
 	// Prefill the buyer's name and email from their account once it loads.
 	useEffect(() => {
@@ -66,7 +74,33 @@ function CustomizePage() {
 	const board = spaces.find((s) => s.slug === boardSlug);
 	const totalKobo = product.priceKobo * qty;
 
+	/** Record a charge that already went through. Safe to call repeatedly. */
+	async function recordPaid(reference: string, details: OrderInput) {
+		try {
+			const res = await placeMerchOrder({ data: { reference, ...details } });
+			setPendingOrder(null);
+			setPlaced({
+				reference: res.reference,
+				confirmationSent: res.confirmationSent,
+			});
+		} catch (err) {
+			setPendingOrder({ reference, details });
+			setError(
+				err instanceof Error
+					? err.message
+					: "Payment went through but we couldn't confirm your order — tap to retry.",
+			);
+			setSubmitting(false);
+		}
+	}
+
 	async function submitOrder() {
+		// A charge already landed — finish recording it rather than paying again.
+		if (pendingOrder) {
+			setError(null);
+			setSubmitting(true);
+			return recordPaid(pendingOrder.reference, pendingOrder.details);
+		}
 		if (!board) {
 			setError("Pick the sign-out board we're printing.");
 			return;
@@ -112,24 +146,7 @@ function CustomizePage() {
 			const popup = new PaystackPop();
 			popup.resumeTransaction(accessCode, {
 				// 3. Payment confirmed — verify, record the paid order, send emails.
-				onSuccess: async () => {
-					try {
-						const res = await placeMerchOrder({
-							data: { reference, ...details },
-						});
-						setPlaced({
-							reference: res.reference,
-							confirmationSent: res.confirmationSent,
-						});
-					} catch (err) {
-						setError(
-							err instanceof Error
-								? err.message
-								: "Payment went through but we couldn't confirm your order — please contact support.",
-						);
-						setSubmitting(false);
-					}
-				},
+				onSuccess: () => recordPaid(reference, details),
 				onCancel: () => {
 					setError("Payment cancelled — your order wasn't placed.");
 					setSubmitting(false);

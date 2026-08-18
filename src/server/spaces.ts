@@ -27,7 +27,7 @@ function slugify(title: string) {
 }
 
 export const createSpace = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		(input: {
 			title: string;
 			note?: string;
@@ -184,7 +184,7 @@ export const listMySpaces = createServerFn({ method: "GET" }).handler(
 );
 
 export const getSpaceBySlug = createServerFn({ method: "GET" })
-	.inputValidator((slug: string) => slug)
+	.validator((slug: string) => slug)
 	.handler(async ({ data: slug }) => {
 		const [space] = await db
 			.select()
@@ -235,7 +235,7 @@ export const getSpaceBySlug = createServerFn({ method: "GET" })
 	});
 
 export const lockSpace = createServerFn({ method: "POST" })
-	.inputValidator((input: { slug: string; locked: boolean }) => input)
+	.validator((input: { slug: string; locked: boolean }) => input)
 	.handler(async ({ data }) => {
 		const [space] = await db
 			.select()
@@ -265,7 +265,7 @@ export const lockSpace = createServerFn({ method: "POST" })
  * nulled FK can't be replayed into another unlock. Irreversible.
  */
 export const deleteSpace = createServerFn({ method: "POST" })
-	.inputValidator((input: { slug: string }) => {
+	.validator((input: { slug: string }) => {
 		const slug = input.slug?.trim();
 		if (!slug) throw new Error("Missing space");
 		return { slug };
@@ -293,7 +293,7 @@ export const deleteSpace = createServerFn({ method: "POST" })
 	});
 
 export const setBoardColor = createServerFn({ method: "POST" })
-	.inputValidator((input: { slug: string; boardColor: string }) => {
+	.validator((input: { slug: string; boardColor: string }) => {
 		if (!BOARD_COLOR_IDS.includes(input.boardColor)) {
 			throw new Error("Unknown board colour");
 		}
@@ -323,7 +323,7 @@ export const setBoardColor = createServerFn({ method: "POST" })
  * stored gift (or nulls) so the client can update in place.
  */
 export const setSpaceGift = createServerFn({ method: "POST" })
-	.inputValidator((input: { slug: string; gift: GiftInput }) => ({
+	.validator((input: { slug: string; gift: GiftInput }) => ({
 		slug: input.slug,
 		gift: normalizeGift(input.gift ?? {}),
 	}))

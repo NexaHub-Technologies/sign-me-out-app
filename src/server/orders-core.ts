@@ -7,10 +7,8 @@ import { merchOrders } from "#/db/schema.ts";
 import {
 	COLOURS,
 	formatPrice,
-	MAX_QTY,
 	PRODUCTS,
 	type Product,
-	SIZES,
 } from "#/lib/order-options.ts";
 
 /**
@@ -44,64 +42,15 @@ export function resendClient(): Resend {
 	return new Resend(key);
 }
 
-export type OrderInput = {
-	productId: string;
-	size: string;
-	colourId: string;
-	qty: number;
-	personalisation: string;
-	boardRef: string;
-	name: string;
-	email: string;
-	phone: string;
-	address: string;
-	notes: string;
-};
+// Validation lives in its own db-free module so it can be tested without a
+// database connection; re-exported here so existing import sites keep working.
+import {
+	type OrderInput,
+	type ValidOrder,
+	validateOrder,
+} from "#/server/order-validation.ts";
 
-type ValidOrder = OrderInput & { product: Product; colourLabel: string };
-
-const EMAIL_RE = /^\S+@\S+\.\S+$/;
-const FIELD_MAX = 500;
-
-/** Trim, cap and cross-check the order against the catalogue. Throws on bad input. */
-export function validateOrder(input: OrderInput): ValidOrder {
-	const clean = { ...input };
-	for (const key of [
-		"size",
-		"personalisation",
-		"boardRef",
-		"name",
-		"email",
-		"phone",
-		"address",
-		"notes",
-	] as const) {
-		clean[key] = input[key].trim().slice(0, FIELD_MAX);
-	}
-
-	const product = PRODUCTS.find((p) => p.id === clean.productId);
-	if (!product) throw new Error("Pick something to print");
-	const colour = COLOURS.find((c) => c.id === clean.colourId);
-	if (!colour) throw new Error("Pick a colour");
-	if (product.sizes && !SIZES.includes(clean.size)) {
-		throw new Error("Pick a size");
-	}
-	if (!Number.isInteger(clean.qty) || clean.qty < 1 || clean.qty > MAX_QTY) {
-		throw new Error(`Quantity must be between 1 and ${MAX_QTY}`);
-	}
-	if (!clean.boardRef) {
-		throw new Error("Pick the sign-out board we're printing.");
-	}
-	if (!clean.name || !clean.phone || !clean.address) {
-		throw new Error(
-			"Add your name, phone number and delivery address so we can reach you.",
-		);
-	}
-	if (!EMAIL_RE.test(clean.email)) {
-		throw new Error("Add a valid email so we can confirm your order.");
-	}
-	return { ...clean, product, colourLabel: colour.label };
-}
+export { type OrderInput, type ValidOrder, validateOrder };
 
 /**
  * Email the order to the fulfilment inbox and a confirmation to the buyer.
@@ -303,9 +252,11 @@ function merchConfirmationHtml(
  * `recordPaidMerchOrder`). Safe to call more than once — emails use
  * idempotency keys.
  */
-export async function deliverMerchOrderEmails(
-	reference: string,
-): Promise<{ reference: string; confirmationSent: boolean }> {
+export async function deliverMerchOrderEmails(reference: string): Promise<{
+	reference: string;
+	confirmationSent: boolean;
+	inboxDelivered: boolean;
+}> {
 	const [order] = await db
 		.select()
 		.from(merchOrders)
@@ -331,9 +282,14 @@ export async function deliverMerchOrderEmails(
 		{ idempotencyKey: `merch-inbox/${reference}` },
 	);
 	if (inboxError) {
-		console.error("Merch order inbox email failed:", inboxError.message);
-		throw new Error(
-			"We couldn't send your order just now — please try again in a moment.",
+		// Unlike the unpaid path above, the money has already moved and the
+		// `merch_orders` row is the record of truth — so a mail failure must not
+		// fail this call. Telling a buyer whose card was charged that their order
+		// failed is worse than a missing email: the only retry the UI offers is
+		// paying again. Log it loudly for manual follow-up and report the flag.
+		console.error(
+			`Merch order ${reference}: fulfilment inbox email failed — the order IS recorded and paid, follow it up by hand:`,
+			inboxError.message,
 		);
 	}
 
@@ -355,7 +311,11 @@ export async function deliverMerchOrderEmails(
 		);
 	}
 
-	return { reference, confirmationSent: !confirmError };
+	return {
+		reference,
+		confirmationSent: !confirmError,
+		inboxDelivered: !inboxError,
+	};
 }
 
 function merchOrderText(

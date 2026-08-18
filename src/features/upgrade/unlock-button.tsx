@@ -26,9 +26,32 @@ export function UnlockButton({
 	className?: string;
 }) {
 	const [busy, setBusy] = useState(false);
+	// Held after a successful charge whose completion failed. `completeSpaceUnlock`
+	// is idempotent, so the fix is to retry it with the same reference — never to
+	// start a second transaction, which would charge the host twice.
+	const [pendingRef, setPendingRef] = useState<string | null>(null);
+
+	async function finish(reference: string) {
+		try {
+			await completeSpaceUnlock({ data: { slug, reference } });
+			setPendingRef(null);
+			await onDone();
+		} catch (err) {
+			setPendingRef(reference);
+			onError(
+				err instanceof Error
+					? err.message
+					: "Payment went through but the unlock didn't apply — tap to finish.",
+			);
+		} finally {
+			setBusy(false);
+		}
+	}
 
 	async function unlock() {
 		setBusy(true);
+		// A charge already landed — finish that one instead of paying again.
+		if (pendingRef) return finish(pendingRef);
 		try {
 			const { accessCode, reference } = await initSpaceUnlock({
 				data: { slug },
@@ -37,20 +60,7 @@ export function UnlockButton({
 			const { default: PaystackPop } = await import("@paystack/inline-js");
 			const popup = new PaystackPop();
 			popup.resumeTransaction(accessCode, {
-				onSuccess: async () => {
-					try {
-						await completeSpaceUnlock({ data: { slug, reference } });
-						await onDone();
-					} catch (err) {
-						onError(
-							err instanceof Error
-								? err.message
-								: "Payment went through but the unlock didn't apply — reload and try again.",
-						);
-					} finally {
-						setBusy(false);
-					}
-				},
+				onSuccess: () => finish(reference),
 				onCancel: () => setBusy(false),
 				onError: (err: { message?: string }) => {
 					onError(err?.message || "Payment failed. Please try again.");
@@ -70,7 +80,11 @@ export function UnlockButton({
 			) : (
 				<Sparkles className="size-4" />
 			)}
-			<span>Unlock{amountKobo ? ` · ${formatNaira(amountKobo)}` : ""}</span>
+			<span>
+				{pendingRef
+					? "Finish unlocking"
+					: `Unlock${amountKobo ? ` · ${formatNaira(amountKobo)}` : ""}`}
+			</span>
 		</Button>
 	);
 }

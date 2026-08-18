@@ -23,7 +23,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "reconcile": "node --env-file-if-exists=.env.local scripts/reconcile-paystack.ts"
   },
   "dependencies": {
     "@paystack/inline-js": "^2.23.1",

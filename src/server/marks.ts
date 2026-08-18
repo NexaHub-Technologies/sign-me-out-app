@@ -33,7 +33,7 @@ export type AddMarkInput = {
 const KINDS = new Set(["stroke", "text", "photo", "voice"]);
 
 export const addMark = createServerFn({ method: "POST" })
-	.inputValidator((input: AddMarkInput) => {
+	.validator((input: AddMarkInput) => {
 		if (!input.id || !input.spaceId) throw new Error("Missing mark id/space");
 		if (!KINDS.has(input.kind)) throw new Error(`Bad mark kind: ${input.kind}`);
 		if (typeof input.x !== "number" || typeof input.y !== "number") {
@@ -122,7 +122,7 @@ export const addMark = createServerFn({ method: "POST" })
 
 /** Author or host may move/transform a mark. */
 export const updateMark = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		(input: {
 			id: string;
 			x: number;
@@ -142,7 +142,7 @@ export const updateMark = createServerFn({ method: "POST" })
 
 /** Author or host may remove a mark (soft delete). */
 export const removeMark = createServerFn({ method: "POST" })
-	.inputValidator((input: { id: string }) => input)
+	.validator((input: { id: string }) => input)
 	.handler(async ({ data }) => {
 		await assertCanEdit(data.id);
 		await db
@@ -154,7 +154,7 @@ export const removeMark = createServerFn({ method: "POST" })
 
 /** Author or host may bring back a soft-deleted mark (undo of a removal). */
 export const restoreMark = createServerFn({ method: "POST" })
-	.inputValidator((input: { id: string }) => input)
+	.validator((input: { id: string }) => input)
 	.handler(async ({ data }) => {
 		await assertCanEdit(data.id);
 		await db
@@ -171,7 +171,7 @@ export const restoreMark = createServerFn({ method: "POST" })
  * absolute (public) URL are returned as-is.
  */
 export const getVoiceUrl = createServerFn({ method: "POST" })
-	.inputValidator((input: { markId: string }) => {
+	.validator((input: { markId: string }) => {
 		if (!input.markId) throw new Error("Missing recording id");
 		return input;
 	})

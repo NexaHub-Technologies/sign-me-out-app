@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { type OrderInput, validateOrder } from "#/server/orders-core.ts";
+import { type OrderInput, validateOrder } from "#/server/order-validation.ts";
 
 const base: OrderInput = {
 	productId: "tee",

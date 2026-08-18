@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
 	boolean,
+	check,
 	index,
 	integer,
 	jsonb,
@@ -133,7 +134,10 @@ export const payments = pgTable(
 		reference: text().notNull(), // Paystack reference we generate (smo_…)
 		email: text().notNull(),
 		amount: integer().notNull(), // kobo; expected 100000 (₦1,000)
-		status: text().default("pending").notNull(), // 'pending' | 'success' | 'failed'
+		// Rows exist only after a verified charge (deferred insert), so 'success'
+		// is the only reachable value — the CHECK keeps it that way. Widening it
+		// is the intended path if a refund/chargeback state is ever needed.
+		status: text().default("success").notNull(), // 'success'
 		ownerId: uuid("owner_id"),
 		// The space this payment unlocked. Nulled if that space is later deleted,
 		// but the row itself still marks the reference as spent.
@@ -150,6 +154,7 @@ export const payments = pgTable(
 	(table) => [
 		uniqueIndex("payments_reference_idx").on(table.reference),
 		index("payments_owner_idx").on(table.ownerId),
+		check("payments_status_ck", sql`${table.status} in ('success')`),
 	],
 ).enableRLS();
 
@@ -175,7 +180,9 @@ export const merchOrders = pgTable(
 		address: text().notNull(),
 		notes: text(),
 		amount: integer().notNull(), // total in kobo
-		status: text().default("pending").notNull(), // 'pending' | 'paid' | 'failed'
+		// As with payments: only written after Paystack confirms, so 'paid' is the
+		// only reachable value. deliverMerchOrderEmails still guards on it.
+		status: text().default("paid").notNull(), // 'paid'
 		ownerId: uuid("owner_id").notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
 			.defaultNow()
@@ -187,6 +194,7 @@ export const merchOrders = pgTable(
 	(table) => [
 		uniqueIndex("merch_orders_reference_idx").on(table.reference),
 		index("merch_orders_owner_idx").on(table.ownerId),
+		check("merch_orders_status_ck", sql`${table.status} in ('paid')`),
 	],
 ).enableRLS();
 

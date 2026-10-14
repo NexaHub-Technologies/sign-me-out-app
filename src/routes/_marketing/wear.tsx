@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_marketing/wear")({
 			title: "Wear your sign-out — Sign Me Out",
 			description:
 				"Your finished canvas, printed on tees, hoodies, totes, mugs and keepsakes you'll actually reach for. Pick a piece, choose a layout, and we'll deliver it.",
-			image: "/images/tee.png",
+			image: "/images/tee.webp",
 			path: "/wear",
 		}),
 	}),
@@ -24,32 +24,32 @@ const garments = [
 		name: "Sign-out tee",
 		tag: "Bestseller",
 		blurb: "Soft heavyweight cotton. Your full canvas across the back.",
-		image: "/images/tee.png",
+		image: "/images/tee.webp",
 	},
 	{
 		name: "Heavy hoodie",
 		tag: "Warm",
 		blurb:
 			"Brushed fleece, kangaroo pocket. Big-print canvas, embroidered name.",
-		image: "/images/hoodie.png",
+		image: "/images/hoodie.webp",
 	},
 	{
 		name: "Tote bag",
 		tag: "Everyday",
 		blurb: "Sturdy canvas tote. Carry your sign-out to the next chapter.",
-		image: "/images/tote-bag.png",
+		image: "/images/tote-bag.webp",
 	},
 	{
 		name: "Cap",
 		tag: "New",
 		blurb: "Embroidered six-panel. A small doodle, a big statement.",
-		image: "/images/cap.png",
+		image: "/images/cap.webp",
 	},
 	{
 		name: "Framed print",
 		tag: "Keepsake",
 		blurb: "A3 archival print, framed. The board for your wall.",
-		image: "/images/framed.png",
+		image: "/images/framed.webp",
 	},
 ];
 
@@ -65,14 +65,14 @@ const souvenirs: {
 		tag: "Bestseller",
 		blurb: "Ceramic 11oz mug. Your canvas wrapped around your morning coffee.",
 		color: "var(--marker-amber)",
-		image: "/images/mug.png",
+		image: "/images/mug.webp",
 	},
 	{
 		name: "Travel cup",
 		tag: "On the go",
 		blurb: "Reusable tumbler with lid. Sip your sign-out anywhere.",
 		color: "var(--marker-blue)",
-		image: "/images/fancy-cup.png",
+		image: "/images/fancy-cup.webp",
 	},
 ];
 
@@ -87,24 +87,41 @@ function ProductCard({
 	tag,
 	blurb,
 	image,
+	eager = false,
 }: {
 	name: string;
 	tag: string;
 	blurb: string;
 	image: string;
+	/** Above-the-fold cards load immediately; the rest wait for scroll. */
+	eager?: boolean;
 }) {
 	return (
-		<Card className="feature-card overflow-hidden border-0 p-0 shadow-none">
+		<Card className="feature-card group gap-0 overflow-hidden border-0 p-0 shadow-none">
 			<div className="relative aspect-[4/3] overflow-hidden bg-paper-2/70">
 				<Badge className="absolute left-4 top-4 z-10 rounded-full bg-ink text-[10px] uppercase tracking-wide text-paper">
 					{tag}
 				</Badge>
-				<img src={image} alt={name} className="h-full w-full object-cover" />
+				<img
+					src={image}
+					alt={name}
+					width={640}
+					height={480}
+					loading={eager ? "eager" : "lazy"}
+					decoding="async"
+					className="product-shot h-full w-full object-cover"
+				/>
 			</div>
-			<div className="p-5">
+			<div className="flex flex-1 flex-col p-5">
 				<h2 className="font-display text-lg font-bold text-ink">{name}</h2>
-				<p className="mt-2 text-sm leading-relaxed text-ink-soft">{blurb}</p>
-				<Button asChild variant="outline" className="mt-4 w-full rounded-full">
+				<p className="mt-2 mb-4 text-sm leading-relaxed text-ink-soft">
+					{blurb}
+				</p>
+				<Button
+					asChild
+					variant="outline"
+					className="mt-auto w-full rounded-full transition-colors group-hover:border-marker-blue/40 group-hover:text-marker-blue-deep"
+				>
 					<Link to="/customize">Customise & order</Link>
 				</Button>
 			</div>
@@ -141,8 +158,9 @@ function WearPage() {
 			</div>
 
 			<div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-				{garments.map((p) => (
+				{garments.map((p, i) => (
 					<ProductCard
+						eager={i < 3}
 						key={p.name}
 						name={p.name}
 						tag={p.tag}
@@ -164,7 +182,7 @@ function WearPage() {
 					things you'll carry long after the last paper.
 				</p>
 
-				<div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+				<div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 					{souvenirs.map((s) => (
 						<ProductCard
 							key={s.name}
@@ -196,7 +214,9 @@ function WearPage() {
 					},
 				].map((f) => (
 					<div key={f.t} className="rounded-2xl border border-line bg-card p-6">
-						<f.icon className="size-5 text-marker-blue-deep" />
+						<span className="grid size-10 place-items-center rounded-xl bg-marker-blue/10">
+							<f.icon className="size-5 text-marker-blue-deep" />
+						</span>
 						<h3 className="font-display mt-3 font-bold text-ink">{f.t}</h3>
 						<p className="mt-1 text-sm text-ink-soft">{f.b}</p>
 					</div>
@@ -204,7 +224,7 @@ function WearPage() {
 			</section>
 
 			<div className="mt-14 flex flex-col gap-3 sm:flex-row">
-				<Button asChild size="lg" className="rounded-full">
+				<Button asChild size="lg" className="pop rounded-full">
 					<Link to="/customize">
 						Customise & order <ArrowRight className="size-4" />
 					</Link>

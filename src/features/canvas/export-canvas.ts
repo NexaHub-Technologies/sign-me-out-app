@@ -1,4 +1,3 @@
-import { jsPDF } from "jspdf";
 import Konva from "konva";
 
 import { NEXAHUB_MARK_BOX, NEXAHUB_MARK_PATH } from "#/lib/nexahub-mark.ts";
@@ -310,7 +309,9 @@ function exportPDF(stage: Konva.Stage, baseName: string) {
 	const dataURL = stage.toDataURL({ pixelRatio: 2, mimeType: "image/png" });
 	const img = new Image();
 	img.src = dataURL;
-	img.onload = () => {
+	img.onload = async () => {
+		// jsPDF is the heaviest export dependency and only PDF needs it.
+		const { jsPDF } = await import("jspdf");
 		const pdf = new jsPDF({
 			orientation: img.width > img.height ? "landscape" : "portrait",
 			unit: "px",

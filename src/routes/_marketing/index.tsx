@@ -364,7 +364,16 @@ function Hero() {
 					</div>
 				</div>
 
-				<div className="lg:pl-4">
+				<div className="relative lg:pl-4">
+					{/* a soft ink bloom behind the board, so it lifts off the page */}
+					<div
+						aria-hidden="true"
+						className="pointer-events-none absolute -inset-8 -z-10 rounded-[3rem] opacity-70 blur-3xl"
+						style={{
+							background:
+								"radial-gradient(60% 55% at 30% 35%, color-mix(in oklab, var(--marker-blue) 28%, transparent), transparent 70%), radial-gradient(50% 50% at 75% 70%, color-mix(in oklab, var(--marker-pink) 22%, transparent), transparent 70%)",
+						}}
+					/>
 					<HeroBoard />
 				</div>
 			</div>
@@ -406,7 +415,7 @@ const leaveTypes = [
 
 function LeaveSection() {
 	return (
-		<section className="page-wrap py-20">
+		<section className="cv-auto page-wrap py-20">
 			<div className="max-w-2xl">
 				<p className="kicker">One canvas, every kind of love</p>
 				<h2 className="font-display mt-3 text-3xl font-bold text-ink sm:text-[2.6rem]">
@@ -454,7 +463,7 @@ function LeaveSection() {
 				))}
 
 				<Card
-					className="feature-card relative justify-between gap-4 overflow-hidden border-0 p-6 text-white shadow-none"
+					className="feature-card relative justify-between gap-4 overflow-hidden border-0 p-6 text-white shadow-none sm:col-span-2 lg:col-span-2"
 					style={{
 						background:
 							"linear-gradient(150deg, var(--marker-blue), var(--marker-blue-deep))",
@@ -507,7 +516,7 @@ const steps = [
 
 function HowItWorks() {
 	return (
-		<section className="border-y border-line bg-paper-2/50 py-20">
+		<section className="cv-auto border-y border-line bg-paper-2/50 py-20">
 			<div className="page-wrap">
 				<p className="kicker">From last paper to keepsake</p>
 				<h2 className="font-display mt-3 text-3xl font-bold text-ink sm:text-[2.6rem]">
@@ -559,19 +568,19 @@ const garments = [
 	{
 		name: "Sign-out tee",
 		tag: "Bestseller",
-		image: "/images/tee.png",
+		image: "/images/tee.webp",
 		rot: -2,
 	},
 	{
 		name: "Heavy hoodie",
 		tag: "Warm",
-		image: "/images/hoodie.png",
+		image: "/images/hoodie.webp",
 		rot: 1.5,
 	},
 	{
 		name: "Souvenirs",
 		tag: "Classic",
-		image: "/images/mug.png",
+		image: "/images/mug.webp",
 		rot: -1.5,
 	},
 ];
@@ -690,7 +699,7 @@ function PricingSection() {
 
 function WearSection() {
 	return (
-		<section className="page-wrap py-20">
+		<section className="cv-auto page-wrap py-20">
 			<div className="grid items-center gap-12 lg:grid-cols-[0.85fr_1.15fr]">
 				<div>
 					<p className="kicker inline-flex items-center gap-2">
@@ -725,7 +734,7 @@ function WearSection() {
 					{garments.map((g) => (
 						<Card
 							key={g.name}
-							className="feature-card wiggle overflow-hidden border-0 p-0 shadow-none"
+							className="feature-card wiggle group overflow-hidden border-0 p-0 shadow-none"
 							style={{ "--rot": `${g.rot}deg` } as CSSProperties}
 						>
 							<div className="relative aspect-[4/3] overflow-hidden bg-paper-2/70">
@@ -735,8 +744,11 @@ function WearSection() {
 								<img
 									src={g.image}
 									alt={g.name}
+									width={640}
+									height={480}
 									loading="lazy"
-									className="h-full w-full object-cover"
+									decoding="async"
+									className="product-shot h-full w-full object-cover"
 								/>
 							</div>
 							<div className="px-4 pb-4">
@@ -754,7 +766,7 @@ function WearSection() {
 
 function ClosingBand() {
 	return (
-		<section className="page-wrap pb-16">
+		<section className="cv-auto page-wrap pb-16">
 			<div
 				className="relative overflow-hidden rounded-[2rem] px-6 py-16 text-center text-white sm:px-10"
 				style={{

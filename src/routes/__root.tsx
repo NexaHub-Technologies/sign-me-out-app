@@ -11,6 +11,10 @@ import { FeedbackFab } from "#/features/feedback/feedback-fab.tsx";
 import { pageMeta } from "#/lib/seo.ts";
 import appCss from "../styles.css?url";
 
+// Variable-weight ranges: one file per family instead of one per weight.
+const FONTS_HREF =
+	"https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Manrope:wght@400..800&family=Caveat:wght@500..700&display=swap";
+
 export const Route = createRootRoute({
 	head: () => ({
 		meta: [
@@ -35,6 +39,16 @@ export const Route = createRootRoute({
 			},
 		],
 		links: [
+			// Fonts load from <head> rather than an @import inside styles.css, so
+			// the browser discovers them in parallel with the app stylesheet
+			// instead of only after downloading and parsing it.
+			{ rel: "preconnect", href: "https://fonts.googleapis.com" },
+			{
+				rel: "preconnect",
+				href: "https://fonts.gstatic.com",
+				crossOrigin: "anonymous",
+			},
+			{ rel: "stylesheet", href: FONTS_HREF },
 			{
 				rel: "icon",
 				type: "image/svg+xml",

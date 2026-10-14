@@ -9,71 +9,36 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as MarketingRouteImport } from './routes/_marketing'
-import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AppRouteImport } from './routes/_app'
-import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
-import { Route as SSpaceIdRouteImport } from './routes/s.$spaceId'
-import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
-import { Route as MarketingWearRouteImport } from './routes/_marketing/wear'
-import { Route as MarketingHowItWorksRouteImport } from './routes/_marketing/how-it-works'
-import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
-import { Route as AuthLoginRouteImport } from './routes/_auth/login'
-import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
-import { Route as AppCustomizeRouteImport } from './routes/_app/customize'
+import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as MarketingRouteImport } from './routes/_marketing'
 import { Route as AppCreateRouteImport } from './routes/_app/create'
+import { Route as AppCustomizeRouteImport } from './routes/_app/customize'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AuthLoginRouteImport } from './routes/_auth/login'
+import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
+import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
+import { Route as MarketingHowItWorksRouteImport } from './routes/_marketing/how-it-works'
+import { Route as MarketingWearRouteImport } from './routes/_marketing/wear'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as SSpaceIdRouteImport } from './routes/s.$spaceId'
 import { Route as V1WebhooksPaystackRouteImport } from './routes/v1/webhooks/paystack'
 
-const MarketingRoute = MarketingRouteImport.update({
-  id: '/_marketing',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
+const MarketingRoute = MarketingRouteImport.update({
+  id: '/_marketing',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MarketingIndexRoute = MarketingIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => MarketingRoute,
-} as any)
-const SSpaceIdRoute = SSpaceIdRouteImport.update({
-  id: '/s/$spaceId',
-  path: '/s/$spaceId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/auth/callback',
-  path: '/auth/callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MarketingWearRoute = MarketingWearRouteImport.update({
-  id: '/wear',
-  path: '/wear',
-  getParentRoute: () => MarketingRoute,
-} as any)
-const MarketingHowItWorksRoute = MarketingHowItWorksRouteImport.update({
-  id: '/how-it-works',
-  path: '/how-it-works',
-  getParentRoute: () => MarketingRoute,
-} as any)
-const AuthSignupRoute = AuthSignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AppCreateRoute = AppCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCustomizeRoute = AppCustomizeRouteImport.update({
@@ -81,10 +46,45 @@ const AppCustomizeRoute = AppCustomizeRouteImport.update({
   path: '/customize',
   getParentRoute: () => AppRoute,
 } as any)
-const AppCreateRoute = AppCreateRouteImport.update({
-  id: '/create',
-  path: '/create',
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AppRoute,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => AuthRoute,
+} as any)
+const MarketingIndexRoute = MarketingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingHowItWorksRoute = MarketingHowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingWearRoute = MarketingWearRouteImport.update({
+  id: '/wear',
+  path: '/wear',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SSpaceIdRoute = SSpaceIdRouteImport.update({
+  id: '/s/$spaceId',
+  path: '/s/$spaceId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const V1WebhooksPaystackRoute = V1WebhooksPaystackRouteImport.update({
   id: '/v1/webhooks/paystack',
@@ -191,11 +191,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_marketing': {
-      id: '/_marketing'
+    '/_app': {
+      id: '/_app'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof MarketingRouteImport
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth': {
@@ -205,67 +205,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app': {
-      id: '/_app'
+    '/_marketing': {
+      id: '/_marketing'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
+      preLoaderRoute: typeof MarketingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_marketing/': {
-      id: '/_marketing/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof MarketingIndexRouteImport
-      parentRoute: typeof MarketingRoute
-    }
-    '/s/$spaceId': {
-      id: '/s/$spaceId'
-      path: '/s/$spaceId'
-      fullPath: '/s/$spaceId'
-      preLoaderRoute: typeof SSpaceIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/auth/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_marketing/wear': {
-      id: '/_marketing/wear'
-      path: '/wear'
-      fullPath: '/wear'
-      preLoaderRoute: typeof MarketingWearRouteImport
-      parentRoute: typeof MarketingRoute
-    }
-    '/_marketing/how-it-works': {
-      id: '/_marketing/how-it-works'
-      path: '/how-it-works'
-      fullPath: '/how-it-works'
-      preLoaderRoute: typeof MarketingHowItWorksRouteImport
-      parentRoute: typeof MarketingRoute
-    }
-    '/_auth/signup': {
-      id: '/_auth/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof AuthSignupRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/login': {
-      id: '/_auth/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_app/dashboard': {
-      id: '/_app/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AppDashboardRouteImport
+    '/_app/create': {
+      id: '/_app/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof AppCreateRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/customize': {
@@ -275,12 +226,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomizeRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/create': {
-      id: '/_app/create'
-      path: '/create'
-      fullPath: '/create'
-      preLoaderRoute: typeof AppCreateRouteImport
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_auth/login': {
+      id: '/_auth/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/signup': {
+      id: '/_auth/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_marketing/': {
+      id: '/_marketing/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof MarketingIndexRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/how-it-works': {
+      id: '/_marketing/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof MarketingHowItWorksRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/wear': {
+      id: '/_marketing/wear'
+      path: '/wear'
+      fullPath: '/wear'
+      preLoaderRoute: typeof MarketingWearRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/s/$spaceId': {
+      id: '/s/$spaceId'
+      path: '/s/$spaceId'
+      fullPath: '/s/$spaceId'
+      preLoaderRoute: typeof SSpaceIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/v1/webhooks/paystack': {
       id: '/v1/webhooks/paystack'

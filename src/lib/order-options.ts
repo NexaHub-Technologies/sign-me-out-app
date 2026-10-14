@@ -20,7 +20,7 @@ export const PRODUCTS: Product[] = [
 		group: "Wear",
 		sizes: true,
 		priceKobo: 1_700_000,
-		image: "/images/tee.png",
+		image: "/images/tee.webp",
 	},
 	{
 		id: "hoodie",
@@ -28,7 +28,7 @@ export const PRODUCTS: Product[] = [
 		group: "Wear",
 		sizes: true,
 		priceKobo: 2_000_000,
-		image: "/images/hoodie.png",
+		image: "/images/hoodie.webp",
 	},
 	{
 		id: "tote",
@@ -36,7 +36,7 @@ export const PRODUCTS: Product[] = [
 		group: "Wear",
 		sizes: false,
 		priceKobo: 1_000_000,
-		image: "/images/tote-bag.png",
+		image: "/images/tote-bag.webp",
 	},
 	{
 		id: "cap",
@@ -44,7 +44,7 @@ export const PRODUCTS: Product[] = [
 		group: "Wear",
 		sizes: false,
 		priceKobo: 800_000,
-		image: "/images/cap.png",
+		image: "/images/cap.webp",
 	},
 	{
 		id: "framed",
@@ -52,7 +52,7 @@ export const PRODUCTS: Product[] = [
 		group: "Wear",
 		sizes: false,
 		priceKobo: 3_700_000,
-		image: "/images/framed.png",
+		image: "/images/framed.webp",
 	},
 	{
 		id: "mug",
@@ -60,7 +60,7 @@ export const PRODUCTS: Product[] = [
 		group: "Souvenirs",
 		sizes: false,
 		priceKobo: 800_000,
-		image: "/images/mug.png",
+		image: "/images/mug.webp",
 	},
 	{
 		id: "cup",
@@ -68,7 +68,7 @@ export const PRODUCTS: Product[] = [
 		group: "Souvenirs",
 		sizes: false,
 		priceKobo: 800_000,
-		image: "/images/fancy-cup.png",
+		image: "/images/fancy-cup.webp",
 	},
 ];
 

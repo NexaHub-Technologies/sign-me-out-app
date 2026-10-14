@@ -14,7 +14,7 @@ export const SITE_URL = RAW_SITE_URL.replace(/\/+$/, "");
 export const SITE_NAME = "Sign Me Out";
 
 /** Default share image. Swap for a dedicated 1200×630 /og.png when you have one. */
-const DEFAULT_OG_IMAGE = "/images/tee.png";
+const DEFAULT_OG_IMAGE = "/images/tee.jpg";
 
 /** Resolve a site-relative path to an absolute URL (og tags need absolute). */
 export function absoluteUrl(path = "/"): string {

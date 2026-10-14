@@ -24,7 +24,6 @@ import { lazy, useEffect, useRef, useState } from "react";
 import { Logo } from "#/components/logo.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { ClientOnly } from "#/features/canvas/client-only.tsx";
-import { exportCanvas } from "#/features/canvas/export-canvas.ts";
 import { ExportPicker } from "#/features/canvas/export-picker.tsx";
 import type { SignCanvasHandle } from "#/features/canvas/sign-canvas.tsx";
 import { GiftCard } from "#/features/gift/gift-card.tsx";
@@ -42,6 +41,18 @@ import { cn } from "#/lib/utils.ts";
 import { getSpaceBySlug, lockSpace, setBoardColor } from "#/server/spaces.ts";
 
 const SignCanvas = lazy(() => import("#/features/canvas/sign-canvas.tsx"));
+
+// The export pipeline pulls in jsPDF (and its html2canvas / DOMPurify chunks)
+// plus a static Konva import. Loading it on first export keeps all of that out
+// of the board route's critical path; most visitors only ever sign.
+async function exportBoard(
+	...args: Parameters<
+		typeof import("#/features/canvas/export-canvas.ts").exportCanvas
+	>
+) {
+	const { exportCanvas } = await import("#/features/canvas/export-canvas.ts");
+	exportCanvas(...args);
+}
 
 export const Route = createFileRoute("/s/$spaceId")({
 	// 'data-only': run the loader and render <head> on the server (so a shared
@@ -241,9 +252,14 @@ function SpacePage() {
 									onExport={(format) => {
 										const stage = canvasRef.current?.getStage();
 										if (!stage) return;
-										exportCanvas(stage, format, space.slug || "sign-me-out", {
-											backgroundColor: board.bg,
-										});
+										void exportBoard(
+											stage,
+											format,
+											space.slug || "sign-me-out",
+											{
+												backgroundColor: board.bg,
+											},
+										);
 									}}
 								/>
 							</div>
@@ -287,7 +303,7 @@ function SpacePage() {
 						onExport={(format) => {
 							const stage = canvasRef.current?.getStage();
 							if (!stage) return;
-							exportCanvas(stage, format, space.slug || "sign-me-out", {
+							void exportBoard(stage, format, space.slug || "sign-me-out", {
 								backgroundColor: board.bg,
 							});
 						}}
